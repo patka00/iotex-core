@@ -296,12 +296,18 @@ func (q *actQueue) PendingActs(ctx context.Context) []action.SealedEnvelope {
 	}
 
 	var (
-		nonce   = confirmedState.PendingNonce()
+		nonce   = confirmedState.PendingNonceConsideringFreshAccount()
 		balance = new(big.Int).Set(confirmedState.Balance)
 		acts    = make([]action.SealedEnvelope, 0, len(q.items))
 	)
 	q.mu.RLock()
 	defer q.mu.RUnlock()
+	if confirmedState.IsLegacyFreshAccount() && nonce == 0 {
+		// for a legacy fresh account, the nonce of first tx could be either 0 or 1
+		if _, exist := q.items[nonce]; !exist {
+			nonce = 1
+		}
+	}
 	for ; ; nonce++ {
 		act, exist := q.items[nonce]
 		if !exist {

@@ -88,9 +88,14 @@ func (worker *queueWorker) Handle(job workerJob) error {
 	)
 	defer span.End()
 
-	nonce, balance, err := worker.getConfirmedState(ctx, act.SenderAddress())
+	nonce, balance, legacyFresh, err := worker.getConfirmedState(ctx, act.SenderAddress())
 	if err != nil {
 		return err
+	}
+
+	if legacyFresh && act.Nonce() == 0 {
+		// legacy fresh account sending first tx with nonce = 0
+		nonce = 0
 	}
 
 	if err := worker.checkSelpWithState(&act, nonce, balance); err != nil {
@@ -118,7 +123,7 @@ func (worker *queueWorker) Handle(job workerJob) error {
 	return nil
 }
 
-func (worker *queueWorker) getConfirmedState(ctx context.Context, sender address.Address) (uint64, *big.Int, error) {
+func (worker *queueWorker) getConfirmedState(ctx context.Context, sender address.Address) (uint64, *big.Int, bool, error) {
 	worker.mu.RLock()
 	queue := worker.accountActs[sender.String()]
 	worker.mu.RUnlock()
@@ -126,12 +131,12 @@ func (worker *queueWorker) getConfirmedState(ctx context.Context, sender address
 	if queue == nil {
 		confirmedState, err := accountutil.AccountState(ctx, worker.ap.sf, sender)
 		if err != nil {
-			return 0, nil, err
+			return 0, nil, false, err
 		}
-		return confirmedState.PendingNonce(), confirmedState.Balance, nil
+		return confirmedState.PendingNonce(), confirmedState.Balance, confirmedState.IsLegacyFreshAccount(), nil
 	}
 	nonce, balance := queue.AccountState()
-	return nonce, balance, nil
+	return nonce, balance, false, nil
 }
 
 func (worker *queueWorker) checkSelpWithState(act *action.SealedEnvelope, pendingNonce uint64, balance *big.Int) error {
