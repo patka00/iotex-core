@@ -8,7 +8,9 @@ package actpool
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 	"sort"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -163,26 +165,92 @@ func (ap *actPool) AddActionEnvelopeValidators(fs ...action.SealedEnvelopeValida
 // Then starting from the current confirmed nonce, iteratively update pending nonce if nonces are consecutive and pending
 // balance is sufficient, and remove all the subsequent actions once the pending balance becomes insufficient
 func (ap *actPool) Reset() {
-	ap.reset()
+	ap.reset(0)
 }
 
-func (ap *actPool) reset() {
+func (ap *actPool) reset(numtx int) {
 	var (
 		wg  sync.WaitGroup
 		ctx = ap.context(context.Background())
 	)
+	allTxs := make([]map[string][]action.SealedEnvelope, _numWorker)
+
 	for i := range ap.worker {
 		wg.Add(1)
-		go func(worker *queueWorker) {
+		go func(i int) {
 			defer wg.Done()
-			worker.Reset(ctx)
-		}(ap.worker[i])
+			worker := ap.worker[i]
+			allTxs[i] = worker.Reset(ctx)
+		}(i)
 	}
 	wg.Wait()
+
+	// Debug with go routine
+	go func(txs []map[string][]action.SealedEnvelope, num int) {
+		toprinted := map[string]string{}
+		numSingle := 0
+		numPacked := 0
+		for _, txsInWorker := range txs {
+			for addr, txs := range txsInWorker {
+				if len(txs) == 0 {
+					continue
+				}
+				firstNonces, retStr := debugtxs(txs)
+				numPacked += firstNonces
+				if firstNonces == 1 {
+					numSingle++
+				} else {
+					toprinted[addr] = retStr
+				}
+			}
+		}
+		if num != 0 {
+			log.L().Info("#Actions to be packed", zap.Int("#txs", numPacked-num))
+		}
+		log.L().Info("Actions in the pool", zap.Int("#single nonce", numSingle))
+		for addr, str := range toprinted {
+			log.L().Debug("Actions in the pool", zap.String("sender", addr), zap.String("nonce array", str))
+		}
+	}(allTxs, numtx)
 }
 
-func (ap *actPool) ReceiveBlock(*block.Block) error {
-	ap.reset()
+func debugtxs(arr []action.SealedEnvelope) (int, string) {
+	if len(arr) == 0 {
+		return 0, ""
+	}
+	if len(arr) == 1 {
+		return 1, fmt.Sprintf("(%d)", arr[0].Nonce())
+	}
+	valid := 0
+	head := arr[0].Nonce()
+	tail := head
+	nonces := []string{}
+	for i := 1; i < len(arr); i++ {
+		if i == len(arr)-1 {
+			tail = arr[i].Nonce()
+			nonces = append(nonces, fmt.Sprintf("(%d, %d)", head, tail))
+			if head == arr[0].Nonce() {
+				valid = i + 1
+			}
+			break
+		}
+		if arr[i].Nonce() != tail+1 {
+			nonces = append(nonces, fmt.Sprintf("(%d, %d)", head, tail))
+			head = arr[i].Nonce()
+			tail = head
+			if valid == 0 {
+				valid = i
+			}
+			continue
+		}
+		tail++
+	}
+	return valid, strings.Join(nonces, ", ")
+}
+
+func (ap *actPool) ReceiveBlock(blk *block.Block) error {
+	ap.reset(len(blk.Actions))
+	log.L().Info("Receive block, Reset actpool", zap.Uint64("gasInPool", atomic.LoadUint64(&ap.gasInPool)), zap.Uint64("numActions", ap.GetSize()), zap.Uint64("Gas size", ap.GetGasSize()))
 	return nil
 }
 

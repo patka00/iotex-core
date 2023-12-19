@@ -211,9 +211,11 @@ func (worker *queueWorker) removeEmptyAccounts() {
 	worker.emptyAccounts.Reset()
 }
 
-func (worker *queueWorker) Reset(ctx context.Context) {
+func (worker *queueWorker) Reset(ctx context.Context) map[string][]action.SealedEnvelope {
 	worker.mu.RLock()
 	defer worker.mu.RUnlock()
+
+	ret := make(map[string][]action.SealedEnvelope)
 
 	for from, queue := range worker.accountActs {
 		addr, _ := address.FromString(from)
@@ -224,6 +226,8 @@ func (worker *queueWorker) Reset(ctx context.Context) {
 			worker.emptyAccounts.Set(from, struct{}{})
 			continue
 		}
+		// debug
+		ret[from] = queue.AllActs()
 		// Remove all actions that are committed to new block
 		acts := queue.UpdateAccountState(confirmedState.PendingNonce(), confirmedState.Balance)
 		acts2 := queue.UpdateQueue()
@@ -233,6 +237,7 @@ func (worker *queueWorker) Reset(ctx context.Context) {
 			worker.emptyAccounts.Set(from, struct{}{})
 		}
 	}
+	return ret
 }
 
 // PendingActions returns all accepted actions
