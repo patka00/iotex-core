@@ -273,11 +273,14 @@ func (ap *actPool) PendingActionMap() map[string][]action.SealedEnvelope {
 	wg.Wait()
 
 	ret := make(map[string][]action.SealedEnvelope, totalAccounts)
+	cnt := 0
 	for _, v := range actsFromWorker {
 		for _, w := range v {
 			ret[w.sender] = w.acts
+			cnt += len(w.acts)
 		}
 	}
+	log.L().Info("PendingActionMap", zap.Int("numTx", cnt))
 	return ret
 }
 

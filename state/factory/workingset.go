@@ -497,6 +497,7 @@ func (ws *workingSet) pickAndRunActions(
 			}
 			if nextAction.GasLimit() > blkCtx.GasLimit {
 				actionIterator.PopAccount()
+				log.L().Info("Skip action due to large gas", zap.Uint64("height", ws.height), zap.Uint64("gasLimit", blkCtx.GasLimit), zap.Uint64("actionGasLimit", nextAction.GasLimit()))
 				continue
 			}
 			actionCtx, err := withActionCtx(ctxWithBlockContext, nextAction)
@@ -516,6 +517,7 @@ func (ws *workingSet) pickAndRunActions(
 				}
 				ap.DeleteAction(caller)
 				actionIterator.PopAccount()
+				log.L().Info("Skip action due to validation failure", zap.Uint64("height", ws.height), zap.Error(err))
 				continue
 			}
 			receipt, err := ws.runAction(actionCtx, nextAction)
@@ -523,9 +525,11 @@ func (ws *workingSet) pickAndRunActions(
 			case nil:
 				// do nothing
 			case action.ErrChainID:
+				log.L().Info("Skip action due to chain ID mismatch", zap.Uint64("height", ws.height), zap.Error(err))
 				continue
 			case action.ErrGasLimit:
 				actionIterator.PopAccount()
+				log.L().Info("Skip action due to large gas after run", zap.Uint64("height", ws.height), zap.Uint64("gasLimit", blkCtx.GasLimit), zap.Uint64("actionGasLimit", nextAction.GasLimit()))
 				continue
 			default:
 				nextActionHash, hashErr := nextAction.Hash()
@@ -563,6 +567,7 @@ func (ws *workingSet) pickAndRunActions(
 		updateReceiptIndex(receipts)
 	}
 	ws.receipts = receipts
+	log.L().Info("Successfully processed actions.", zap.Uint64("height", ws.height), zap.Int("numActions", len(executedActions)))
 
 	return executedActions, ws.finalize()
 }
