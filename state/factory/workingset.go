@@ -488,16 +488,20 @@ func (ws *workingSet) pickAndRunActions(
 	// initial action iterator
 	blkCtx := protocol.MustGetBlockCtx(ctx)
 	ctxWithBlockContext := ctx
+	loopCnt := 0
 	if ap != nil {
 		actionIterator := actioniterator.NewActionIterator(ap.PendingActionMap())
 		for {
 			nextAction, ok := actionIterator.Next()
 			if !ok {
+				log.L().Info("break below next")
 				break
 			}
+			loopCnt++
 			if nextAction.GasLimit() > blkCtx.GasLimit {
 				actionIterator.PopAccount()
-				log.L().Info("Skip action due to large gas", zap.Uint64("height", ws.height), zap.Uint64("gasLimit", blkCtx.GasLimit), zap.Uint64("actionGasLimit", nextAction.GasLimit()))
+				intr, _ := nextAction.IntrinsicGas()
+				log.L().Info("Skip action due to large gas", zap.Uint64("height", ws.height), zap.Uint64("blkGasLimit", blkCtx.GasLimit), zap.Uint64("actionGasLimit", nextAction.GasLimit()), zap.Uint64("actionIntinsicGas", intr))
 				continue
 			}
 			actionCtx, err := withActionCtx(ctxWithBlockContext, nextAction)
@@ -567,7 +571,7 @@ func (ws *workingSet) pickAndRunActions(
 		updateReceiptIndex(receipts)
 	}
 	ws.receipts = receipts
-	log.L().Info("Successfully processed actions.", zap.Uint64("height", ws.height), zap.Int("numActions", len(executedActions)))
+	log.L().Info("Successfully processed actions.", zap.Uint64("height", ws.height), zap.Int("numActions", len(executedActions)), zap.Uint64("blkGasLimit", blkCtx.GasLimit), zap.Uint64("loopCNT", uint64(loopCnt)))
 
 	return executedActions, ws.finalize()
 }
