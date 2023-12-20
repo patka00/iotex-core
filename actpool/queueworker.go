@@ -253,11 +253,12 @@ func (worker *queueWorker) PendingActions(ctx context.Context) []*pendingActions
 		// Remove the actions that are already timeout
 		acts := queue.UpdateQueue()
 		worker.ap.removeInvalidActs(acts)
-		log.L().Info("remove invalid actions", zap.Int("num", len(acts)))
-
+		if len(acts) != 0 {
+			log.L().Info("remove invalid actions", zap.String("addr", from), zap.Int("num", len(acts)))
+		}
 		pdActs := queue.PendingActs(ctx)
 		validNum, debugStr := debugtxs(pdActs)
-		log.L().Info("pending actions", zap.Int("num", len(pdActs)), zap.Int("valid", validNum), zap.String("nonce pair", debugStr))
+		log.L().Info("pending actions", zap.String("addr", from), zap.Int("num", len(pdActs)), zap.Int("valid", validNum), zap.String("nonce pair", debugStr))
 		actionArr = append(actionArr, &pendingActions{
 			sender: from,
 			acts:   pdActs,
