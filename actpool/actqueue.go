@@ -293,20 +293,23 @@ func (q *actQueue) PendingActs(ctx context.Context) []action.SealedEnvelope {
 	}
 
 	var (
-		nonce   = confirmedState.PendingNonce()
-		balance = new(big.Int).Set(confirmedState.Balance)
-		acts    = make([]action.SealedEnvelope, 0, len(q.items))
+		nonce            = confirmedState.PendingNonce()
+		balance          = new(big.Int).Set(confirmedState.Balance)
+		balabceUnchanged = new(big.Int).Set(confirmedState.Balance)
+		acts             = make([]action.SealedEnvelope, 0, len(q.items))
 	)
 	q.mu.RLock()
 	defer q.mu.RUnlock()
 	for ; ; nonce++ {
 		act, exist := q.items[nonce]
 		if !exist {
+			log.L().Info("break due to nonce", zap.String("address", q.address), zap.Uint64("nonce from state", nonce), zap.Uint64("pendingnonce at queue", q.pendingNonce), zap.Uint64("confirmedNonce at queue", q.accountNonce))
 			break
 		}
 
 		cost, _ := act.Cost()
 		if balance.Cmp(cost) < 0 {
+			log.L().Info("break due to balance", zap.String("address", q.address), zap.Uint64("nonce from state", nonce), zap.Uint64("cost", cost.Uint64()), zap.Uint64("balance", balance.Uint64()), zap.Uint64("balance from state", balabceUnchanged.Uint64()))
 			break
 		}
 
