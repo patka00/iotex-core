@@ -260,10 +260,12 @@ func (worker *queueWorker) PendingActions(ctx context.Context) []*pendingActions
 		allActs := queue.AllActs()
 		validNum, debugStr := debugtxs(allActs)
 		log.L().Info("pending actions", zap.String("addr", from), zap.Int("queue size", queue.Len()), zap.Int("num", len(pdActs)), zap.Int("valid", validNum), zap.String("nonce pair", debugStr))
-		actionArr = append(actionArr, &pendingActions{
-			sender: from,
-			acts:   pdActs,
-		})
+		if len(pdActs) != 0 {
+			actionArr = append(actionArr, &pendingActions{
+				sender: from,
+				acts:   pdActs,
+			})
+		}
 	}
 	return actionArr
 }
