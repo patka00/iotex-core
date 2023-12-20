@@ -257,8 +257,9 @@ func (worker *queueWorker) PendingActions(ctx context.Context) []*pendingActions
 			log.L().Info("remove invalid actions", zap.String("addr", from), zap.Int("num", len(acts)))
 		}
 		pdActs := queue.PendingActs(ctx)
-		validNum, debugStr := debugtxs(pdActs)
-		log.L().Info("pending actions", zap.String("addr", from), zap.Int("num", len(pdActs)), zap.Int("valid", validNum), zap.String("nonce pair", debugStr))
+		allActs := queue.AllActs()
+		validNum, debugStr := debugtxs(allActs)
+		log.L().Info("pending actions", zap.String("addr", from), zap.Int("queue size", queue.Len()), zap.Int("num", len(pdActs)), zap.Int("valid", validNum), zap.String("nonce pair", debugStr))
 		actionArr = append(actionArr, &pendingActions{
 			sender: from,
 			acts:   pdActs,
