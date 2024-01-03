@@ -158,6 +158,15 @@ var (
 			"Transfer with same nonce from a single sender 1",
 		},
 		{
+			AcntCreate, nil, big.NewInt(100000),
+			AcntCreate, nil, big.NewInt(100000),
+			0, big.NewInt(0),
+			make([]byte, 4),
+			uint64(200000), big.NewInt(1),
+			TsfSuccess, "",
+			"Transfer with nonce 0",
+		},
+		{
 			AcntExist, identityset.PrivateKey(1), big.NewInt(100000),
 			AcntCreate, nil, big.NewInt(100000),
 			2, big.NewInt(100),
@@ -246,15 +255,6 @@ var (
 			uint64(1000), big.NewInt(1),
 			TsfFail, action.ErrIntrinsicGas.Error(),
 			"Transfer with not enough gas limit",
-		},
-		{
-			AcntCreate, nil, big.NewInt(100000),
-			AcntCreate, nil, big.NewInt(100000),
-			0, big.NewInt(0),
-			make([]byte, 4),
-			uint64(200000), big.NewInt(1),
-			TsfFail, "nonce too low",
-			"Transfer with nonce 0",
 		},
 		{
 			AcntExist, identityset.PrivateKey(0), big.NewInt(100000),
