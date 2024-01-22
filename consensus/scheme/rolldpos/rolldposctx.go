@@ -392,6 +392,7 @@ func (ctx *rollDPoSCtx) PreCommitEndorsement() interface{} {
 	defer ctx.mutex.RUnlock()
 	endorsement := ctx.round.ReadyToCommit(ctx.encodedAddr)
 	if endorsement == nil {
+		log.L().WithOptions(zap.AddStacktrace(zap.WarnLevel)).Warn("no pre-commit endorsement", zap.String("encodedAddr", ctx.encodedAddr))
 		// DON'T CHANGE, this is on purpose, because endorsement as nil won't result in a nil "interface {}"
 		return nil
 	}

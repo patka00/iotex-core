@@ -13,6 +13,7 @@ import (
 
 	"github.com/iotexproject/iotex-core/blockchain/block"
 	"github.com/iotexproject/iotex-core/endorsement"
+	"github.com/iotexproject/iotex-core/pkg/log"
 )
 
 // ErrInsufficientEndorsements represents the error that not enough endorsements
@@ -128,14 +129,17 @@ func (ctx *roundCtx) IsUnlocked() bool {
 func (ctx *roundCtx) ReadyToCommit(addr string) *EndorsedConsensusMessage {
 	c := ctx.eManager.CollectionByBlockHash(ctx.blockInLock)
 	if c == nil {
+		log.L().Warn("collect block not exist", log.Hex("blockHash", ctx.blockInLock))
 		return nil
 	}
 	en := c.Endorsement(addr, COMMIT)
 	if en == nil {
+		log.L().Warn("commit endorsement not received", log.Hex("blockHash", ctx.blockInLock), zap.String("endorser", addr))
 		return nil
 	}
 	blk := c.Block()
 	if blk == nil {
+		log.L().Warn("block not received", log.Hex("blockHash", ctx.blockInLock))
 		return nil
 	}
 	blkHash := blk.HashBlock()

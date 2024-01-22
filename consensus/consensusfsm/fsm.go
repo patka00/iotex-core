@@ -507,6 +507,7 @@ func (m *ConsensusFSM) onReceiveProposalEndorsement(evt fsm.Event, currentState 
 	m.ProduceReceiveLockEndorsementEvent(lockEndorsement)
 	m.ctx.Broadcast(lockEndorsement)
 
+	// err cant not reach here
 	return sAcceptLockEndorsement, err
 }
 
