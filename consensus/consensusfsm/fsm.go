@@ -474,7 +474,7 @@ func (m *ConsensusFSM) processBlock(block interface{}) error {
 }
 
 func (m *ConsensusFSM) onFailedToReceiveBlock(evt fsm.Event) (fsm.State, error) {
-	m.ctx.Logger().Warn("didn't receive the proposed block before timeout")
+	m.ctx.Logger().WithOptions(zap.AddStacktrace(zap.WarnLevel)).With(zap.Int("NumPendingEvents", m.NumPendingEvents())).Warn("didn't receive the proposed block before timeout")
 	if err := m.processBlock(nil); err != nil {
 		m.ctx.Logger().Debug("Failed to generate proposal endorsement", zap.Error(err))
 	}
@@ -545,7 +545,7 @@ func (m *ConsensusFSM) onBroadcastPreCommitEndorsement(evt fsm.Event) (fsm.State
 }
 
 func (m *ConsensusFSM) onStopReceivingLockEndorsement(evt fsm.Event) (fsm.State, error) {
-	m.ctx.Logger().WithOptions(zap.AddCaller()).With(zap.Int("NumPendingEvents", m.NumPendingEvents())).Warn("Not enough lock endorsements")
+	m.ctx.Logger().WithOptions(zap.AddStacktrace(zap.WarnLevel)).With(zap.Int("NumPendingEvents", m.NumPendingEvents())).Warn("Not enough lock endorsements")
 
 	return m.BackToPrepare(0)
 }
