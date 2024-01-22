@@ -360,7 +360,7 @@ func (m *ConsensusFSM) handle(evt *ConsensusEvent) error {
 		)
 		_consensusEvtsMtc.WithLabelValues(string(evt.Type()), "backoff").Inc()
 	case ErrOldCalibrateEvt:
-		m.ctx.Logger().Debug(
+		m.ctx.Logger().WithOptions(zap.AddStacktrace(zap.WarnLevel)).Warn(
 			"failed to handle eCalibrate, event height is less than current height",
 			zap.Error(err),
 		)
