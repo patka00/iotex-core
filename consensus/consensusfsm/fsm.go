@@ -476,9 +476,10 @@ func (m *ConsensusFSM) processBlock(block interface{}) error {
 func (m *ConsensusFSM) onFailedToReceiveBlock(evt fsm.Event) (fsm.State, error) {
 	m.ctx.Logger().WithOptions(zap.AddStacktrace(zap.WarnLevel)).With(zap.Int("NumPendingEvents", m.NumPendingEvents())).Warn("didn't receive the proposed block before timeout")
 	if err := m.processBlock(nil); err != nil {
-		m.ctx.Logger().Debug("Failed to generate proposal endorsement", zap.Error(err))
+		m.ctx.Logger().WithOptions(zap.AddStacktrace(zap.ErrorLevel)).Error("Failed to generate proposal endorsement", zap.Error(err))
 	}
 
+	//why return nil here?
 	return sAcceptProposalEndorsement, nil
 }
 
