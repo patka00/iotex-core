@@ -271,6 +271,7 @@ func (m *ConsensusFSM) Calibrate(height uint64) {
 func (m *ConsensusFSM) BackToPrepare(delay time.Duration) (fsm.State, error) {
 	// If the node is not active in consensus, stay at sPrepare and no need to produce ePrepare
 	if m.ctx.Active() {
+		m.ctx.Logger().WithOptions(zap.AddCaller()).Warn("node active, Back to prepare state")
 		m.produceConsensusEvent(ePrepare, delay)
 	}
 	return sPrepare, nil
@@ -544,7 +545,7 @@ func (m *ConsensusFSM) onBroadcastPreCommitEndorsement(evt fsm.Event) (fsm.State
 }
 
 func (m *ConsensusFSM) onStopReceivingLockEndorsement(evt fsm.Event) (fsm.State, error) {
-	m.ctx.Logger().Warn("Not enough lock endorsements")
+	m.ctx.Logger().WithOptions(zap.AddCaller()).With(zap.Int("NumPendingEvents", m.NumPendingEvents())).Warn("Not enough lock endorsements")
 
 	return m.BackToPrepare(0)
 }
@@ -562,7 +563,7 @@ func (m *ConsensusFSM) onReceivePreCommitEndorsement(evt fsm.Event) (fsm.State, 
 }
 
 func (m *ConsensusFSM) onStopReceivingPreCommitEndorsement(evt fsm.Event) (fsm.State, error) {
-	m.ctx.Logger().Warn("Not enough pre-commit endorsements")
+	m.ctx.Logger().WithOptions(zap.AddCaller()).With(zap.Int("NumPendingEvents", m.NumPendingEvents())).Warn("Not enough pre-commit endorsements")
 
 	return m.BackToPrepare(0)
 }

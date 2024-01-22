@@ -421,6 +421,7 @@ func (ctx *rollDPoSCtx) NewProposalEndorsement(msg interface{}) (interface{}, er
 		}
 		ctx.loggerWithStats().Debug("accept block proposal", log.Hex("block", blockHash))
 	} else if ctx.round.IsLocked() {
+		ctx.loggerWithStats().Warn("no block proposal, use the locked block", log.Hex("block", ctx.round.HashOfBlockInLock()))
 		blockHash = ctx.round.HashOfBlockInLock()
 	}
 
