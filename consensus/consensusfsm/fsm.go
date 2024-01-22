@@ -352,7 +352,7 @@ func (m *ConsensusFSM) handle(evt *ConsensusEvent) error {
 			return nil
 		}
 		m.produce(evt, m.ctx.UnmatchedEventInterval(evt.Height()))
-		m.ctx.Logger().Debug(
+		m.ctx.Logger().WithOptions(zap.AddStacktrace(zap.WarnLevel)).Warn(
 			"consensus state transition could find the match",
 			zap.String("src", string(src)),
 			zap.String("evt", string(evt.Type())),
@@ -497,7 +497,7 @@ func (m *ConsensusFSM) onReceiveProposalEndorsement(evt fsm.Event, currentState 
 	}
 	lockEndorsement, err := m.ctx.NewLockEndorsement(cEvt.Data())
 	if err != nil {
-		m.ctx.Logger().Debug("Failed to add proposal endorsement", zap.Error(err))
+		m.ctx.Logger().WithOptions(zap.AddStacktrace(zap.WarnLevel)).Warn("Failed to add proposal endorsement", zap.Error(err))
 		return currentState, nil
 	}
 	if lockEndorsement == nil {
