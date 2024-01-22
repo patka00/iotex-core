@@ -510,7 +510,7 @@ func (m *ConsensusFSM) onReceiveProposalEndorsement(evt fsm.Event, currentState 
 }
 
 func (m *ConsensusFSM) onStopReceivingProposalEndorsement(evt fsm.Event) (fsm.State, error) {
-	m.ctx.Logger().Warn("Not enough proposal endorsements")
+	m.ctx.Logger().WithOptions(zap.AddStacktrace(zap.WarnLevel)).Warn("Not enough proposal endorsements", zap.Any("evt", evt.Type()))
 
 	return sAcceptLockEndorsement, nil
 }
