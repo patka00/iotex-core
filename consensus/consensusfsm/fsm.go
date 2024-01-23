@@ -397,11 +397,12 @@ func (m *ConsensusFSM) calibrate(evt fsm.Event) (fsm.State, error) {
 }
 
 func (m *ConsensusFSM) prepare(evt fsm.Event) (fsm.State, error) {
+	m.ctx.Logger().Warn("enter prepare state")
 	if err := m.ctx.Prepare(); err != nil {
 		m.ctx.Logger().Error("Error during prepare", zap.Error(err))
 		return m.BackToPrepare(0)
 	}
-	m.ctx.Logger().Debug("Start a new round")
+	m.ctx.Logger().Warn("Start a new round")
 	proposal, err := m.ctx.Proposal()
 	if err != nil {
 		m.ctx.Logger().Error("failed to generate block proposal", zap.Error(err))
@@ -409,9 +410,13 @@ func (m *ConsensusFSM) prepare(evt fsm.Event) (fsm.State, error) {
 	}
 
 	overtime := m.ctx.WaitUntilRoundStart()
+	m.ctx.Logger().Warn("overtime", zap.Duration("overtime", overtime), zap.Any("proposal", proposal))
 	if proposal != nil {
+		m.ctx.Logger().Warn("Propose a new block")
+
 		m.ctx.Broadcast(proposal)
 	}
+	m.ctx.Logger().Warn("checking if delegate", zap.Bool("isDelegate", m.ctx.IsDelegate()))
 	if !m.ctx.IsDelegate() {
 		return m.BackToPrepare(0)
 	}
