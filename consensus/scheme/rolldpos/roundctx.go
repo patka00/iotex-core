@@ -134,6 +134,7 @@ func (ctx *roundCtx) ReadyToCommit(addr string) *EndorsedConsensusMessage {
 	}
 	en := c.Endorsement(addr, COMMIT)
 	if en == nil {
+		log.L().Warn("commit endorsement not exist", log.Hex("blockHash", ctx.blockInLock), zap.String("endorser", addr))
 		return nil
 	}
 	blk := c.Block()
