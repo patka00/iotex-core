@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/iotexproject/iotex-core/action"
+	"github.com/iotexproject/iotex-core/pkg/log"
+	"go.uber.org/zap"
 )
 
 type (
@@ -22,6 +24,7 @@ type (
 	accountPriorityQueue []*accountItem
 
 	accountPool struct {
+		//TODO: add lock
 		accounts      map[string]*accountItem
 		priorityQueue accountPriorityQueue
 	}
@@ -62,6 +65,9 @@ func (ap *accountPool) PutAction(
 	expiry time.Duration,
 	act action.SealedEnvelope,
 ) error {
+	h1, _ := act.Hash()
+	time1 := time.Now()
+	log.L().Warn("accountPool PutAction Start", log.Hex("actHash", h1[:]), zap.Uint64("pendingNonce", pendingNonce), zap.String("expiry", expiry.String()), zap.String("addr", addr))
 	account, ok := ap.accounts[addr]
 	if !ok {
 		queue := NewActQueue(
@@ -72,6 +78,7 @@ func (ap *accountPool) PutAction(
 			WithTimeOut(expiry),
 		)
 		if err := queue.Put(act); err != nil {
+			log.L().Warn("accountPool PutAction End1", zap.Error(err), zap.Duration("spent", time.Since(time1)))
 			return err
 		}
 		ap.accounts[addr] = &accountItem{
@@ -79,14 +86,16 @@ func (ap *accountPool) PutAction(
 			actQueue: queue,
 		}
 		heap.Push(&ap.priorityQueue, ap.accounts[addr])
+		log.L().Warn("accountPool PutAction End2", zap.Duration("spent", time.Since(time1)))
 		return nil
 	}
 
 	if err := account.actQueue.Put(act); err != nil {
+		log.L().Warn("accountPool PutAction End3", zap.Duration("spent", time.Since(time1)))
 		return err
 	}
 	heap.Fix(&ap.priorityQueue, account.index)
-
+	log.L().Warn("accountPool PutAction End4", zap.Duration("spent", time.Since(time1)))
 	return nil
 }
 

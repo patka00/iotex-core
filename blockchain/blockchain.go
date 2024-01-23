@@ -364,6 +364,8 @@ func (bc *blockchain) context(ctx context.Context, tipInfoFlag bool) (context.Co
 }
 
 func (bc *blockchain) MintNewBlock(timestamp time.Time) (*block.Block, error) {
+	time1 := time.Now()
+	log.L().Warn("MintNewBlock Start", zap.Time("timestamp", timestamp))
 	bc.mu.RLock()
 	defer bc.mu.RUnlock()
 	mintNewBlockTimer := bc.timerFactory.NewTimer("MintNewBlock")
@@ -394,17 +396,21 @@ func (bc *blockchain) MintNewBlock(timestamp time.Time) (*block.Block, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create block")
 	}
-
+	log.L().Warn("MintNewBlock End", zap.Uint64("block", blk.Height()), zap.Duration("spent", time.Since(time1)))
 	return &blk, nil
 }
 
 // CommitBlock validates and appends a block to the chain
 func (bc *blockchain) CommitBlock(blk *block.Block) error {
+	time1 := time.Now()
+	log.L().Warn("CommitBlock Start", zap.Uint64("block", blk.Height()))
 	bc.mu.Lock()
 	defer bc.mu.Unlock()
 	timer := bc.timerFactory.NewTimer("CommitBlock")
 	defer timer.End()
-	return bc.commitBlock(blk)
+	err := bc.commitBlock(blk)
+	log.L().Warn("CommitBlock End", zap.Uint64("block", blk.Height()), zap.Duration("spent", time.Since(time1)))
+	return err
 }
 
 func (bc *blockchain) AddSubscriber(s BlockCreationSubscriber) error {

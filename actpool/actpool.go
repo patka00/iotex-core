@@ -11,6 +11,7 @@ import (
 	"sort"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
@@ -183,7 +184,10 @@ func (ap *actPool) reset() {
 }
 
 func (ap *actPool) ReceiveBlock(*block.Block) error {
+	log.L().Warn("actpool.ReceiveBlock Start")
+	time1 := time.Now()
 	ap.reset()
+	log.L().Warn("actpool.ReceiveBlock End", zap.Duration("spent", time.Since(time1)))
 	return nil
 }
 
