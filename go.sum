@@ -497,6 +497,8 @@ github.com/iotexproject/go-fsm v1.0.0 h1:Zrg9JnNDUZg4Anpj6oa0Tk4+sXbHTpJzI0v5/Cj
 github.com/iotexproject/go-fsm v1.0.0/go.mod h1:t3aYXtCCcQxyS7oduQZyuUpPnVI4ddFTwbAagHN7fT0=
 github.com/iotexproject/go-p2p v0.3.5 h1:F71XxYQtR25youD+dCXnMgtfiCKGUFh8KDIqU7u5xOk=
 github.com/iotexproject/go-p2p v0.3.5/go.mod h1:P32N/mwLUWMQ/okMcNLlfBO7iD5ITyBOvN41roKdPdg=
+github.com/iotexproject/go-p2p v0.3.6-0.20240124122831-1712383caa1a h1:5wVYM3+Zc2E9NYhHatk1imdKAiCK2VsODL+O2KydWhU=
+github.com/iotexproject/go-p2p v0.3.6-0.20240124122831-1712383caa1a/go.mod h1:P32N/mwLUWMQ/okMcNLlfBO7iD5ITyBOvN41roKdPdg=
 github.com/iotexproject/go-pkgs v0.1.5-0.20210604060651-be5ee19f2575/go.mod h1:ttXhcwrtODyh7JozpJlCml09CjP0pcKqTe2B0MbTGc8=
 github.com/iotexproject/go-pkgs v0.1.12/go.mod h1:t5X9kQ1VL5H+L+DC5GmohXnFKlcxaTcRnIBBuydcsTQ=
 github.com/iotexproject/go-pkgs v0.1.13 h1:bK48DVenkfYkC4TRoqL77RLFRBE1MUfscCW495kzcC8=
