@@ -317,7 +317,7 @@ func (m *endorsementManager) CollectionByBlockHash(blkHash []byte) *blockEndorse
 	encodedBlockHash := encodeToString(blkHash)
 	collections, exists := m.collections[encodedBlockHash]
 	if !exists {
-		log.L().Warn("No endorsement collection for the block", zap.String("blockHash", encodedBlockHash))
+		log.L().WithOptions(zap.AddStacktrace(zap.WarnLevel)).Warn("No endorsement collection for the block", zap.String("blockHash", encodedBlockHash))
 		return nil
 	}
 	return collections

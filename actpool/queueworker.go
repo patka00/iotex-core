@@ -195,7 +195,7 @@ func (worker *queueWorker) putAction(sender string, act action.SealedEnvelope, p
 	if err != nil {
 		actHash, _ := act.Hash()
 		_actpoolMtc.WithLabelValues("failedPutActQueue").Inc()
-		log.L().Info("failed put action into ActQueue",
+		log.L().Debug("failed put action into ActQueue",
 			zap.String("actionHash", hex.EncodeToString(actHash[:])),
 			zap.Error(err))
 		return err
