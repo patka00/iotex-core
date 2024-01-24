@@ -213,7 +213,8 @@ func (r *RollDPoS) HandleConsensusMsg(msg *iotextypes.ConsensusMessage) error {
 	en := endorsedMessage.Endorsement()
 	switch consensusMessage := endorsedMessage.Document().(type) {
 	case *blockProposal:
-		log.L().Warn("Handling consensus blockProposal message", zap.Uint64("block height", consensusMessage.Height()), zap.Int("block action size", len(consensusMessage.block.Actions)))
+		bhash := consensusMessage.block.HashBlock()
+		log.L().Warn("Handling consensus blockProposal message", zap.Uint64("block height", consensusMessage.Height()), zap.Int("block action size", len(consensusMessage.block.Actions)), log.Hex("block Hash", bhash[:]))
 		if err := r.ctx.CheckBlockProposer(endorsedMessage.Height(), consensusMessage, en); err != nil {
 			return errors.Wrap(err, "failed to verify block proposal")
 		}

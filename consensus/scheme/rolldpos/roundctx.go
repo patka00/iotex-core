@@ -210,6 +210,7 @@ func (ctx *roundCtx) AddVoteEndorsement(
 	}
 	blockHash := vote.BlockHash()
 	// TODO: (zhi) request for block
+	log.L().Warn("roundCtx AddVoteEndorsement", zap.Uint32("round", ctx.roundNum), log.Hex("blockHash", blockHash), zap.String("topic", vote.Topic().String()))
 	if len(blockHash) != 0 && ctx.block(blockHash) == nil {
 		return errors.New("the corresponding block not received")
 	}

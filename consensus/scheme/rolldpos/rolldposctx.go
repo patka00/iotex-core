@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/facebookgo/clock"
+	"github.com/golang/protobuf/proto"
 	fsm "github.com/iotexproject/go-fsm"
 	"github.com/iotexproject/go-pkgs/crypto"
 	"github.com/pkg/errors"
@@ -642,7 +643,12 @@ func (ctx *rollDPoSCtx) mintNewBlock() (*EndorsedConsensusMessage, error) {
 	if ctx.round.IsUnlocked() {
 		proofOfUnlock = ctx.round.ProofOfLock()
 	}
-	return ctx.endorseBlockProposal(newBlockProposal(blk, proofOfUnlock))
+	bp := newBlockProposal(blk, proofOfUnlock)
+	bpP, _ := bp.Proto()
+	bpm, _ := proto.Marshal(bpP)
+	blkHash := blk.HashBlock()
+	log.L().WithOptions(zap.AddStacktrace(zap.WarnLevel)).Warn("rollDPoSCtx mintNewBlock", zap.Uint32("round", ctx.round.roundNum), zap.Uint64("height", bp.block.Height()), zap.Int("proposalBlockSize", len(bpm)), log.Hex("block hash", blkHash[:]))
+	return ctx.endorseBlockProposal(bp)
 }
 
 func (ctx *rollDPoSCtx) isDelegate() bool {
