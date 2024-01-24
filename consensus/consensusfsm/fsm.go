@@ -454,7 +454,7 @@ func (m *ConsensusFSM) prepare(evt fsm.Event) (fsm.State, error) {
 }
 
 func (m *ConsensusFSM) onReceiveBlock(evt fsm.Event) (fsm.State, error) {
-	m.ctx.Logger().Debug("Receive block")
+	m.ctx.Logger().Warn("ConsensusFSM Receive block")
 	cEvt, ok := evt.(*ConsensusEvent)
 	if !ok {
 		m.ctx.Logger().Error("invalid fsm event", zap.Any("event", evt))
@@ -469,6 +469,7 @@ func (m *ConsensusFSM) onReceiveBlock(evt fsm.Event) (fsm.State, error) {
 }
 
 func (m *ConsensusFSM) processBlock(block interface{}) error {
+	m.ctx.Logger().Warn("ConsensusFSM processBlock")
 	en, err := m.ctx.NewProposalEndorsement(block)
 	if err != nil {
 		return err
@@ -479,7 +480,7 @@ func (m *ConsensusFSM) processBlock(block interface{}) error {
 }
 
 func (m *ConsensusFSM) onFailedToReceiveBlock(evt fsm.Event) (fsm.State, error) {
-	m.ctx.Logger().WithOptions(zap.AddStacktrace(zap.WarnLevel)).With(zap.Int("NumPendingEvents", m.NumPendingEvents())).Warn("didn't receive the proposed block before timeout")
+	m.ctx.Logger().WithOptions(zap.AddStacktrace(zap.WarnLevel)).With(zap.Int("NumPendingEvents", m.NumPendingEvents())).Warn("ConsensusFSM onFailedToReceiveBlock")
 	if err := m.processBlock(nil); err != nil {
 		m.ctx.Logger().WithOptions(zap.AddStacktrace(zap.ErrorLevel)).Error("Failed to generate proposal endorsement", zap.Error(err))
 	}
@@ -489,6 +490,7 @@ func (m *ConsensusFSM) onFailedToReceiveBlock(evt fsm.Event) (fsm.State, error) 
 }
 
 func (m *ConsensusFSM) onReceiveProposalEndorsementInAcceptLockEndorsementState(evt fsm.Event) (fsm.State, error) {
+	m.ctx.Logger().WithOptions(zap.AddStacktrace(zap.WarnLevel)).With(zap.Int("NumPendingEvents", m.NumPendingEvents())).Warn("ConsensusFSM onReceiveProposalEndorsementInAcceptLockEndorsementState")
 	return m.onReceiveProposalEndorsement(evt, sAcceptLockEndorsement)
 }
 

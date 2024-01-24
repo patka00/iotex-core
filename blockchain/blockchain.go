@@ -396,7 +396,7 @@ func (bc *blockchain) MintNewBlock(timestamp time.Time) (*block.Block, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create block")
 	}
-	log.L().Warn("MintNewBlock End", zap.Uint64("block", blk.Height()), zap.Duration("spent", time.Since(time1)))
+	log.L().Warn("MintNewBlock End", zap.Uint64("block", blk.Height()), zap.Duration("spent", time.Since(time1)), zap.Int("block action size", len(blk.Actions)))
 	return &blk, nil
 }
 

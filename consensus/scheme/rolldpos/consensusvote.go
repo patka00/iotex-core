@@ -25,6 +25,19 @@ const (
 	COMMIT ConsensusVoteTopic = 2
 )
 
+func (t ConsensusVoteTopic) String() string {
+	switch t {
+	case PROPOSAL:
+		return "PROPOSAL"
+	case LOCK:
+		return "LOCK"
+	case COMMIT:
+		return "COMMIT"
+	default:
+		return "UNKNOWN"
+	}
+}
+
 // ConsensusVote is a vote on a given topic for a block on a specific height
 type ConsensusVote struct {
 	blkHash []byte
