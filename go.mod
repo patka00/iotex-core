@@ -18,7 +18,7 @@ require (
 	github.com/hashicorp/vault/api v1.1.0
 	github.com/holiman/uint256 v1.2.0
 	github.com/iotexproject/go-fsm v1.0.0
-	github.com/iotexproject/go-p2p v0.3.6-0.20240124122831-1712383caa1a
+	github.com/iotexproject/go-p2p v0.3.6-0.20240125023212-f68fdb091a43
 	github.com/iotexproject/go-pkgs v0.1.13
 	github.com/iotexproject/iotex-address v0.2.8
 	github.com/iotexproject/iotex-antenna-go/v2 v2.5.1
