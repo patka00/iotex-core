@@ -374,6 +374,8 @@ func (bc *blockchain) MintNewBlock(timestamp time.Time) (*block.Block, error) {
 	if err != nil {
 		return nil, err
 	}
+	time2 := time.Now()
+	log.L().Warn("MintNewBlock GetHeight", zap.Uint64("tipHeight", tipHeight), zap.Duration("spent", time.Since(time1)))
 	newblockHeight := tipHeight + 1
 	ctx, err := bc.context(context.Background(), true)
 	if err != nil {
@@ -392,11 +394,13 @@ func (bc *blockchain) MintNewBlock(timestamp time.Time) (*block.Block, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create block builder at new block height %d", newblockHeight)
 	}
+	log.L().Warn("MintNewBlock NewBlockBuilder", zap.Uint64("tipHeight", tipHeight), zap.Duration("spent", time.Since(time2)))
+	time3 := time.Now()
 	blk, err := blockBuilder.SignAndBuild(minterPrivateKey)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create block")
 	}
-	log.L().Warn("MintNewBlock End", zap.Uint64("block", blk.Height()), zap.Duration("spent", time.Since(time1)), zap.Int("block action size", len(blk.Actions)))
+	log.L().Warn("MintNewBlock End", zap.Uint64("block", blk.Height()), zap.Duration("spent", time.Since(time1)), zap.Int("block action size", len(blk.Actions)), zap.Duration("SignAndBuild spent", time.Since(time3)))
 	return &blk, nil
 }
 
