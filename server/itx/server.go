@@ -12,20 +12,20 @@ import (
 	"net/http/pprof"
 	"runtime"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
+	"github.com/iotexproject/go-pkgs/util/httputil"
 	"github.com/iotexproject/iotex-core/api"
 	"github.com/iotexproject/iotex-core/chainservice"
 	"github.com/iotexproject/iotex-core/config"
 	"github.com/iotexproject/iotex-core/dispatcher"
 	"github.com/iotexproject/iotex-core/p2p"
-	"github.com/iotexproject/iotex-core/pkg/ha"
 	"github.com/iotexproject/iotex-core/pkg/log"
 	"github.com/iotexproject/iotex-core/pkg/probe"
 	"github.com/iotexproject/iotex-core/pkg/routine"
-	"github.com/iotexproject/iotex-core/pkg/util/httputil"
 	"github.com/iotexproject/iotex-core/server/itx/nodestats"
 )
 
@@ -244,8 +244,8 @@ func StartServer(ctx context.Context, svr *Server, probeSvr *probe.Server, cfg c
 	if cfg.System.HTTPAdminPort > 0 {
 		mux := http.NewServeMux()
 		log.RegisterLevelConfigMux(mux)
-		haCtl := ha.New(svr.rootChainService.Consensus())
-		mux.Handle("/ha", http.HandlerFunc(haCtl.Handle))
+		// haCtl := ha.New(svr.rootChainService.Consensus())
+		// mux.Handle("/ha", http.HandlerFunc(haCtl.Handle))
 		mux.Handle("/debug/pprof/", http.HandlerFunc(pprof.Index))
 		mux.Handle("/debug/pprof/cmdline", http.HandlerFunc(pprof.Cmdline))
 		mux.Handle("/debug/pprof/profile", http.HandlerFunc(pprof.Profile))
@@ -253,12 +253,12 @@ func StartServer(ctx context.Context, svr *Server, probeSvr *probe.Server, cfg c
 		mux.Handle("/debug/pprof/trace", http.HandlerFunc(pprof.Trace))
 
 		port := fmt.Sprintf(":%d", cfg.System.HTTPAdminPort)
-		adminserv = httputil.NewServer(port, mux)
-		defer func() {
-			if err := adminserv.Shutdown(ctx); err != nil {
-				log.L().Error("Error when serving metrics data.", zap.Error(err))
-			}
-		}()
+		adminserv = httputil.Server(port, mux, httputil.SetTimeout(50*time.Second, 70*time.Second, 120*time.Second))
+		// defer func() {
+		// 	if err := adminserv.Shutdown(ctx); err != nil {
+		// 		log.L().Error("Error when serving metrics data.", zap.Error(err))
+		// 	}
+		// }()
 		go func() {
 			runtime.SetMutexProfileFraction(1)
 			runtime.SetBlockProfileRate(1)
