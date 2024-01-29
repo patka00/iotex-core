@@ -7,8 +7,11 @@ package batch
 
 import (
 	"sync"
+	"time"
 
+	"github.com/iotexproject/iotex-core/pkg/log"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 )
 
 type (
@@ -372,9 +375,11 @@ func (cb *cachedBatch) ResetSnapshots() {
 	for key := range cb.keyTags {
 		keys = append(keys, key)
 	}
+	time1 := time.Now()
 	for _, key := range keys {
 		cb.keyTags[key] = []int{0}
 	}
+	log.L().Warn("cachedBatch ResetSnapshots", zap.Duration("spent", time.Now().Sub(time1)), zap.Int("keysLen", len(keys)), zap.Int("cb.keyTagsLen", len(cb.keyTags)))
 	cb.tagKeys = [][]kvCacheKey{keys}
 }
 
