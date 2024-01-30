@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"syscall"
+	"time"
 
 	"github.com/pkg/errors"
 	bolt "go.etcd.io/bbolt"
@@ -304,7 +305,8 @@ func (b *BoltDB) WriteBatch(kvsb batch.KVStoreBatch) (err error) {
 
 	kvsb.Lock()
 	defer kvsb.Unlock()
-
+	time1 := time.Now()
+	log.L().Warn("WriteBatch Start", zap.Int("size", kvsb.Size()))
 	for c := uint8(0); c < b.config.NumRetries; c++ {
 		if err = b.db.Update(func(tx *bolt.Tx) error {
 			for i := 0; i < kvsb.Size(); i++ {
@@ -340,7 +342,7 @@ func (b *BoltDB) WriteBatch(kvsb batch.KVStoreBatch) (err error) {
 			break
 		}
 	}
-
+	log.L().Warn("WriteBatch End", zap.Int("size", kvsb.Size()), zap.Duration("spent", time.Now().Sub(time1)))
 	if err != nil {
 		if errors.Is(err, syscall.ENOSPC) {
 			log.L().Fatal("Failed to write batch db.", zap.Error(err))
