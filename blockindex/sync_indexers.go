@@ -7,11 +7,12 @@ package blockindex
 
 import (
 	"context"
-	"fmt"
+	"time"
 
 	"github.com/iotexproject/iotex-core/blockchain/block"
 	"github.com/iotexproject/iotex-core/blockchain/blockdao"
-	"github.com/iotexproject/iotex-core/pkg/prometheustimer"
+	"github.com/iotexproject/iotex-core/pkg/log"
+	"go.uber.org/zap"
 )
 
 // SyncIndexers is a special index that includes multiple indexes,
@@ -20,20 +21,12 @@ type SyncIndexers struct {
 	indexers       []blockdao.BlockIndexer
 	startHeights   []uint64 // start height of each indexer, which will be determined when the indexer is started
 	minStartHeight uint64   // minimum start height of all indexers
-	timerFactory   *prometheustimer.TimerFactory
 }
 
 // NewSyncIndexers creates a new SyncIndexers
 // each indexer will PutBlock one by one in the order of the indexers
 func NewSyncIndexers(indexers ...blockdao.BlockIndexer) *SyncIndexers {
-	timerFactory, _ := prometheustimer.New(
-		"iotex_block_dao_perf",
-		"Performance of block DAO",
-		[]string{"type"},
-		[]string{"default"},
-	)
-
-	return &SyncIndexers{indexers: indexers, timerFactory: timerFactory}
+	return &SyncIndexers{indexers: indexers}
 }
 func (x *SyncIndexers) Name() string {
 	return "SyncIndexers"
@@ -62,6 +55,7 @@ func (ig *SyncIndexers) Stop(ctx context.Context) error {
 // PutBlock puts a block into the indexers in the group
 func (ig *SyncIndexers) PutBlock(ctx context.Context, blk *block.Block) error {
 	for i, indexer := range ig.indexers {
+		time1 := time.Now()
 		// check if the block is higher than the indexer's start height
 		if blk.Height() < ig.startHeights[i] {
 			continue
@@ -71,15 +65,15 @@ func (ig *SyncIndexers) PutBlock(ctx context.Context, blk *block.Block) error {
 		if err != nil {
 			return err
 		}
+		time2 := time.Now()
 		if blk.Height() <= height {
 			continue
 		}
-		timer := ig.timerFactory.NewTimer(fmt.Sprintf("sync_indexer_%s", indexer.Name()))
 		// put block
 		if err := indexer.PutBlock(ctx, blk); err != nil {
 			return err
 		}
-		timer.End()
+		log.L().Warn("SyncIndexers PutBlock", zap.String("indexer", indexer.Name()), zap.Uint64("height", blk.Height()), zap.Duration("spent1", time2.Sub(time1)), zap.Duration("spent2", time.Now().Sub(time2)))
 	}
 	return nil
 }
