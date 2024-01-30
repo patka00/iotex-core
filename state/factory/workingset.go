@@ -8,6 +8,7 @@ package factory
 import (
 	"context"
 	"sort"
+	"time"
 
 	"github.com/iotexproject/go-pkgs/hash"
 	"github.com/pkg/errors"
@@ -100,6 +101,7 @@ func (ws *workingSet) runActions(
 ) ([]*action.Receipt, error) {
 	// Handle actions
 	receipts := make([]*action.Receipt, 0)
+	time1 := time.Now()
 	for _, elp := range elps {
 		ctxWithActionContext, err := withActionCtx(ctx, elp)
 		if err != nil {
@@ -111,6 +113,7 @@ func (ws *workingSet) runActions(
 		}
 		receipts = append(receipts, receipt)
 	}
+	log.L().Warn("runActions", zap.Duration("spent", time.Now().Sub(time1)), zap.Int("len", len(elps)))
 	if protocol.MustGetFeatureCtx(ctx).CorrectTxLogIndex {
 		updateReceiptIndex(receipts)
 	}
@@ -217,6 +220,7 @@ func (ws *workingSet) ResetSnapshots() {
 
 // Commit persists all changes in RunActions() into the DB
 func (ws *workingSet) Commit(ctx context.Context) error {
+	time1 := time.Now()
 	if err := protocolPreCommit(ctx, ws); err != nil {
 		return err
 	}
@@ -228,6 +232,7 @@ func (ws *workingSet) Commit(ctx context.Context) error {
 		return err
 	}
 	ws.Reset()
+	log.L().Warn("workingSet Commit", zap.Duration("spent", time.Since(time1)))
 	return nil
 }
 
@@ -391,7 +396,7 @@ func (ws *workingSet) process(ctx context.Context, actions []action.SealedEnvelo
 	if err := ws.validate(ctx); err != nil {
 		return err
 	}
-
+	time1 := time.Now()
 	reg := protocol.MustGetRegistry(ctx)
 	for _, act := range actions {
 		ctxWithActionContext, err := withActionCtx(ctx, act)
@@ -413,7 +418,7 @@ func (ws *workingSet) process(ctx context.Context, actions []action.SealedEnvelo
 			}
 		}
 	}
-
+	log.L().WithOptions(zap.AddStacktrace(zap.WarnLevel)).Warn("workingSet process", zap.Duration("spent", time.Now().Sub(time1)), zap.Int("len", len(actions)))
 	receipts, err := ws.runActions(ctx, actions)
 	if err != nil {
 		return err
