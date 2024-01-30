@@ -89,6 +89,9 @@ func NewBloomfilterIndexer(kv db.KVStore, cfg Config) (BloomFilterIndexer, error
 		bfNumHash: cfg.RangeBloomFilterNumHash,
 	}, nil
 }
+func (x *bloomfilterIndexer) Name() string {
+	return "bloomfilterIndexer"
+}
 
 // Start starts the bloomfilter indexer
 func (bfx *bloomfilterIndexer) Start(ctx context.Context) error {

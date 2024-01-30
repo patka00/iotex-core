@@ -250,6 +250,9 @@ func NewSGDRegistry(contract string, startHeight uint64, kv db.KVStore) SGDRegis
 		kvStore:     kv,
 	}
 }
+func (sgd *sgdRegistry) Name() string {
+	return "sgdRegistry"
+}
 
 // Start starts the SGDIndexer
 func (sgd *sgdRegistry) Start(ctx context.Context) error {

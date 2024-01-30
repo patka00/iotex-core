@@ -25,6 +25,9 @@ type SyncIndexers struct {
 func NewSyncIndexers(indexers ...blockdao.BlockIndexer) *SyncIndexers {
 	return &SyncIndexers{indexers: indexers}
 }
+func (x *SyncIndexers) Name() string {
+	return "SyncIndexers"
+}
 
 // Start starts the indexer group
 func (ig *SyncIndexers) Start(ctx context.Context) error {

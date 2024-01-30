@@ -82,6 +82,7 @@ type (
 	Factory interface {
 		lifecycle.StartStopper
 		protocol.StateReader
+		Name() string
 		Register(protocol.Protocol) error
 		Validate(context.Context, *block.Block) error
 		// NewBlockBuilder creates block builder
@@ -183,6 +184,10 @@ func NewFactory(cfg Config, dao db.KVStore, opts ...Option) (Factory, error) {
 	sf.timerFactory = timerFactory
 
 	return sf, nil
+}
+
+func (sf *factory) Name() string {
+	return "state factory"
 }
 
 func (sf *factory) Start(ctx context.Context) error {

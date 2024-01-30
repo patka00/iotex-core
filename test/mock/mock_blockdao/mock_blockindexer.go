@@ -64,6 +64,20 @@ func (mr *MockBlockIndexerMockRecorder) Height() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Height", reflect.TypeOf((*MockBlockIndexer)(nil).Height))
 }
 
+// Name mocks base method.
+func (m *MockBlockIndexer) Name() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Name")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// Name indicates an expected call of Name.
+func (mr *MockBlockIndexerMockRecorder) Name() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockBlockIndexer)(nil).Name))
+}
+
 // PutBlock mocks base method.
 func (m *MockBlockIndexer) PutBlock(arg0 context.Context, arg1 *block.Block) error {
 	m.ctrl.T.Helper()

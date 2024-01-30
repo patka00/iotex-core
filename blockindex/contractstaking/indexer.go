@@ -64,6 +64,9 @@ func NewContractStakingIndexer(kvStore db.KVStore, config Config) (*Indexer, err
 		config:  config,
 	}, nil
 }
+func (x *Indexer) Name() string {
+	return "contractstakingIndexers"
+}
 
 // Start starts the indexer
 func (s *Indexer) Start(ctx context.Context) error {

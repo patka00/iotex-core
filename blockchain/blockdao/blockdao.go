@@ -7,6 +7,7 @@ package blockdao
 
 import (
 	"context"
+	"fmt"
 	"sync/atomic"
 
 	"github.com/pkg/errors"
@@ -254,9 +255,11 @@ func (dao *blockDAO) PutBlock(ctx context.Context, blk *block.Block) error {
 	timer = dao.timerFactory.NewTimer("index_block")
 	defer timer.End()
 	for _, indexer := range dao.indexers {
+		timer1 := dao.timerFactory.NewTimer(fmt.Sprintf("indexer_%s", indexer.Name()))
 		if err := indexer.PutBlock(ctx, blk); err != nil {
 			return err
 		}
+		timer1.End()
 	}
 	return nil
 }

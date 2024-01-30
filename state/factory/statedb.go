@@ -112,6 +112,9 @@ func NewStateDB(cfg Config, dao db.KVStore, opts ...StateDBOption) (Factory, err
 	sdb.timerFactory = timerFactory
 	return &sdb, nil
 }
+func (x *stateDB) Name() string {
+	return "factory stateDB"
+}
 
 func (sdb *stateDB) Start(ctx context.Context) error {
 	ctx = protocol.WithRegistry(ctx, sdb.registry)

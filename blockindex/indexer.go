@@ -45,6 +45,7 @@ type (
 
 	// Indexer is the interface for block indexer
 	Indexer interface {
+		Name() string
 		Start(context.Context) error
 		Stop(context.Context) error
 		PutBlock(context.Context, *block.Block) error
@@ -89,6 +90,9 @@ func NewIndexer(kv db.KVStore, genesisHash hash.Hash256) (Indexer, error) {
 		genesisHash: genesisHash,
 	}
 	return &x, nil
+}
+func (x *blockIndexer) Name() string {
+	return "blockIndexer"
 }
 
 // Start starts the indexer

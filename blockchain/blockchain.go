@@ -491,7 +491,7 @@ func (bc *blockchain) commitBlock(blk *block.Block) error {
 	// emit block to all block subscribers
 	time2 := time.Now()
 	bc.emitToSubscribers(blk)
-	log.L().Warn("CommitBlock emitToSubscribers", zap.Uint64("block", blk.Height()), zap.Duration("spent1", time2.Sub(time1)), zap.Duration("spent2", time.Since(time2)))
+	log.L().Warn("CommitBlock emitToSubscribers", zap.Uint64("block", blk.Height()), zap.Duration("putBlockspent", time2.Sub(time1)), zap.Duration("emitToSubscribersspent", time.Since(time2)))
 	return nil
 }
 
