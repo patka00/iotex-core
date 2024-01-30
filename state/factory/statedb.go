@@ -300,6 +300,8 @@ func (sdb *stateDB) ReadContractStorage(ctx context.Context, contract address.Ad
 
 // PutBlock persists all changes in RunActions() into the DB
 func (sdb *stateDB) PutBlock(ctx context.Context, blk *block.Block) error {
+	time1 := time.Now()
+	log.L().Warn("factory stateDB PutBlock Start")
 	sdb.mutex.Lock()
 	timer := sdb.timerFactory.NewTimer("Commit")
 	sdb.mutex.Unlock()
@@ -324,6 +326,8 @@ func (sdb *stateDB) PutBlock(ctx context.Context, blk *block.Block) error {
 	if err != nil {
 		return err
 	}
+	log.L().Warn("getFromWorketSet", zap.Duration("spent", time.Since(time1)))
+	time2 := time.Now()
 	if !isExist {
 		if !sdb.skipBlockValidationOnPut {
 			err = ws.ValidateBlock(ctx, blk)
@@ -335,6 +339,8 @@ func (sdb *stateDB) PutBlock(ctx context.Context, blk *block.Block) error {
 			return err
 		}
 	}
+	log.L().Warn("state ws Process", zap.Duration("spent", time.Since(time2)))
+	time2 = time.Now()
 	sdb.mutex.Lock()
 	defer sdb.mutex.Unlock()
 	receipts, err := ws.Receipts()
@@ -350,11 +356,13 @@ func (sdb *stateDB) PutBlock(ctx context.Context, blk *block.Block) error {
 			sdb.currentChainHeight, h,
 		)
 	}
-
+	log.L().Warn("state ws Receipts", zap.Duration("spent", time.Since(time2)))
+	time2 = time.Now()
 	if err := ws.Commit(ctx); err != nil {
 		return err
 	}
 	sdb.currentChainHeight = h
+	log.L().Warn("factory stateDB PutBlock End", zap.Duration("total spent", time.Since(time1)), zap.Duration("spent1", time.Since(time2)))
 	return nil
 }
 
