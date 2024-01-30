@@ -7,9 +7,11 @@ package blockindex
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/iotexproject/iotex-core/blockchain/block"
 	"github.com/iotexproject/iotex-core/blockchain/blockdao"
+	"github.com/iotexproject/iotex-core/pkg/prometheustimer"
 )
 
 // SyncIndexers is a special index that includes multiple indexes,
@@ -18,12 +20,20 @@ type SyncIndexers struct {
 	indexers       []blockdao.BlockIndexer
 	startHeights   []uint64 // start height of each indexer, which will be determined when the indexer is started
 	minStartHeight uint64   // minimum start height of all indexers
+	timerFactory   *prometheustimer.TimerFactory
 }
 
 // NewSyncIndexers creates a new SyncIndexers
 // each indexer will PutBlock one by one in the order of the indexers
 func NewSyncIndexers(indexers ...blockdao.BlockIndexer) *SyncIndexers {
-	return &SyncIndexers{indexers: indexers}
+	timerFactory, _ := prometheustimer.New(
+		"iotex_block_dao_perf",
+		"Performance of block DAO",
+		[]string{"type"},
+		[]string{"default"},
+	)
+
+	return &SyncIndexers{indexers: indexers, timerFactory: timerFactory}
 }
 func (x *SyncIndexers) Name() string {
 	return "SyncIndexers"
@@ -64,10 +74,12 @@ func (ig *SyncIndexers) PutBlock(ctx context.Context, blk *block.Block) error {
 		if blk.Height() <= height {
 			continue
 		}
+		timer := ig.timerFactory.NewTimer(fmt.Sprintf("sync_indexer_%s", indexer.Name()))
 		// put block
 		if err := indexer.PutBlock(ctx, blk); err != nil {
 			return err
 		}
+		timer.End()
 	}
 	return nil
 }
