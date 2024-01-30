@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 
 	"github.com/iotexproject/iotex-core/db/batch"
 	"github.com/iotexproject/iotex-core/pkg/log"
@@ -112,9 +114,11 @@ func NewKVStoreFlusher(store KVStore, buffer batch.CachedBatch, opts ...KVStoreF
 }
 
 func (f *flusher) Flush() error {
+	time1 := time.Now()
 	if err := f.kvb.store.WriteBatch(f.kvb.buffer.Translate(f.flushTranslate)); err != nil {
 		return err
 	}
+	log.L().Warn("flusher Flush", zap.Duration("spent", time.Now().Sub(time1)))
 
 	f.kvb.buffer.Lock()
 	f.kvb.buffer.ClearAndUnlock()
@@ -257,6 +261,8 @@ func (kvb *kvStoreWithBuffer) WriteBatch(b batch.KVStoreBatch) (err error) {
 			b.Unlock()
 		}
 	}()
+	time1 := time.Now()
+	log.L().Debug("write batch start", zap.Int("size", b.Size()))
 	writes := make([]*batch.WriteInfo, b.Size())
 	for i := 0; i < b.Size(); i++ {
 		write, e := b.Entry(i)
@@ -268,6 +274,8 @@ func (kvb *kvStoreWithBuffer) WriteBatch(b batch.KVStoreBatch) (err error) {
 		}
 		writes[i] = write
 	}
+	log.L().Warn("write batch for", zap.Int("size", b.Size()), zap.Duration("spent", time.Now().Sub(time1)))
+	time2 := time.Now()
 	kvb.buffer.Lock()
 	defer kvb.buffer.Unlock()
 	for _, write := range writes {
@@ -280,6 +288,6 @@ func (kvb *kvStoreWithBuffer) WriteBatch(b batch.KVStoreBatch) (err error) {
 			log.S().Panic("unexpected write type")
 		}
 	}
-
+	log.L().WithOptions(zap.AddStacktrace(zap.WarnLevel)).Warn("write batch end", zap.Int("size", b.Size()), zap.Duration("total spent", time.Now().Sub(time1)), zap.Duration("spent", time.Now().Sub(time2)))
 	return nil
 }
