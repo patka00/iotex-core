@@ -472,7 +472,7 @@ func (bc *blockchain) commitBlock(blk *block.Block) error {
 	if err != nil {
 		return err
 	}
-
+	time1 := time.Now()
 	// write block into DB
 	putTimer := bc.timerFactory.NewTimer("putBlock")
 	err = bc.dao.PutBlock(ctx, blk)
@@ -489,9 +489,9 @@ func (bc *blockchain) commitBlock(blk *block.Block) error {
 	}
 	_blockMtc.WithLabelValues("numActions").Set(float64(len(blk.Actions)))
 	// emit block to all block subscribers
-	time1 := time.Now()
+	time2 := time.Now()
 	bc.emitToSubscribers(blk)
-	log.L().Warn("CommitBlock emitToSubscribers", zap.Uint64("block", blk.Height()), zap.Duration("spent", time.Since(time1)))
+	log.L().Warn("CommitBlock emitToSubscribers", zap.Uint64("block", blk.Height()), zap.Duration("spent1", time2.Sub(time1)), zap.Duration("spent2", time.Since(time2)))
 	return nil
 }
 
