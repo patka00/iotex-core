@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/hex"
+	"time"
 
 	"go.uber.org/zap"
 
@@ -30,6 +31,7 @@ func NewGRPCBlockListener(handler streamHandler, errChan chan error) apitypes.Re
 
 // Respond to new block
 func (bl *gRPCBlockListener) Respond(_ string, blk *block.Block) error {
+	time1 := time.Now()
 	var receiptsPb []*iotextypes.Receipt
 	for _, receipt := range blk.Receipts {
 		receiptsPb = append(receiptsPb, receipt.ConvertToReceiptPb())
@@ -43,6 +45,8 @@ func (bl *gRPCBlockListener) Respond(_ string, blk *block.Block) error {
 		Hash:   hex.EncodeToString(h[:]),
 		Height: blk.Height(),
 	}
+	time2 := time.Now()
+	spent1 := time2.Sub(time1)
 	// send blockInfo thru streaming API
 	if _, err := bl.streamHandle(&iotexapi.StreamBlocksResponse{
 		Block:           blockInfo,
@@ -56,6 +60,7 @@ func (bl *gRPCBlockListener) Respond(_ string, blk *block.Block) error {
 		bl.errChan <- err
 		return err
 	}
+	log.L().WithOptions(zap.AddStacktrace(zap.WarnLevel)).Warn("streaming block", zap.Duration("spent1", spent1), zap.Duration("spent2", time.Now().Sub(time2)))
 	return nil
 }
 

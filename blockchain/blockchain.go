@@ -489,7 +489,9 @@ func (bc *blockchain) commitBlock(blk *block.Block) error {
 	}
 	_blockMtc.WithLabelValues("numActions").Set(float64(len(blk.Actions)))
 	// emit block to all block subscribers
+	time1 := time.Now()
 	bc.emitToSubscribers(blk)
+	log.L().Warn("CommitBlock emitToSubscribers", zap.Uint64("block", blk.Height()), zap.Duration("spent", time.Since(time1)))
 	return nil
 }
 

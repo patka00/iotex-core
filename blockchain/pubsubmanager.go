@@ -8,6 +8,7 @@ package blockchain
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -94,9 +95,11 @@ func (ps *pubSub) RemoveBlockListener(s BlockCreationSubscriber) error {
 func (ps *pubSub) SendBlockToSubscribers(blk *block.Block) {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
+	time1 := time.Now()
 	for _, elem := range ps.blocklisteners {
 		elem.pendingBlksBuffer <- blk
 	}
+	log.L().Warn("SendBlockToSubscribers", zap.Int("blocklistenersLen", len(ps.blocklisteners)), zap.Duration("spent", time.Now().Sub(time1)))
 }
 
 // Stop stops the pubsub manager
