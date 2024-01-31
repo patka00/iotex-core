@@ -173,8 +173,14 @@ func (ws *workingSet) runAction(
 	}
 	if needLog {
 		log.L().Warn("runAction 0", zap.Duration("spent", time.Since(time1)))
-		time1 = time.Now()
 	}
+	defer func() {
+		time1 = time.Now()
+		ws.ResetSnapshots()
+		if needLog {
+			log.L().Warn("runAction defer", zap.Duration("spent", time.Since(time1)))
+		}
+	}()
 	for _, actionHandler := range reg.All() {
 		receipt, err := actionHandler.Handle(ctx, elp.Action(), ws)
 		if err != nil {
@@ -187,15 +193,6 @@ func (ws *workingSet) runAction(
 		if receipt != nil {
 			return receipt, nil
 		}
-	}
-	if needLog {
-		log.L().Warn("runAction 1", zap.Duration("spent", time.Since(time1)))
-		time1 = time.Now()
-	}
-	ws.ResetSnapshots()
-	if needLog {
-		log.L().Warn("runAction 2", zap.Duration("spent", time.Since(time1)))
-		// time1 = time.Now()
 	}
 	return nil, errors.New("receipt is empty")
 }
