@@ -373,8 +373,8 @@ func (cb *cachedBatch) ResetSnapshots() {
 	}
 	keys := make([]kvCacheKey, 0, len(cb.keyTags))
 	time1 := time.Now()
-	for key := range cb.keyTags {
-		cb.keyTags[key].set([]int{0})
+	for key, v := range cb.keyTags {
+		v.set([]int{0})
 		keys = append(keys, key)
 	}
 	log.L().Warn("cachedBatch ResetSnapshots", zap.Duration("spent", time.Now().Sub(time1)), zap.Int("keysLen", len(keys)), zap.Int("cb.keyTagsLen", len(cb.keyTags)))
