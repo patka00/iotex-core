@@ -345,7 +345,7 @@ func (cb *cachedBatch) RevertSnapshot(snapshot int) error {
 		keys := cb.tagKeys[tag]
 		for _, key := range keys {
 			kv := cb.keyTags[key]
-			kv.set(kv.getRange(0, kv.len()-1))
+			kv.pop()
 			if kv.len() == 0 {
 				delete(cb.keyTags, key)
 			}
@@ -372,7 +372,7 @@ func (cb *cachedBatch) ResetSnapshots() {
 	keys := make([]kvCacheKey, 0, len(cb.keyTags))
 	// time1 := time.Now()
 	for key, v := range cb.keyTags {
-		v.set([]int{0})
+		v.reset()
 		keys = append(keys, key)
 	}
 	// log.L().Warn("cachedBatch ResetSnapshots", zap.Duration("spent", time.Now().Sub(time1)), zap.Int("keysLen", len(keys)), zap.Int("cb.keyTagsLen", len(cb.keyTags)))

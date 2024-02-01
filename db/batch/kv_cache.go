@@ -44,10 +44,21 @@ func newkvCacheValue(v []int) *kvCacheValue {
 	return (*kvCacheValue)(&v)
 }
 
-func (kv *kvCacheValue) set(v []int) {
-	*kv = v
+// func (kv *kvCacheValue) set(v []int) {
+// 	*kv = v
+// }
+
+var (
+	kvDefValue = newkvCacheValue([]int{0})
+)
+
+func (kv *kvCacheValue) reset() {
+	*kv = *kvDefValue
 }
 
+func (kv *kvCacheValue) pop() {
+	*kv = (*kv)[0 : kv.len()-1]
+}
 func (kv *kvCacheValue) get() []int {
 	return ([]int)(*kv)
 }
@@ -56,9 +67,9 @@ func (kv *kvCacheValue) getAt(i int) int {
 	return ([]int)(*kv)[i]
 }
 
-func (kv *kvCacheValue) getRange(start, end int) []int {
-	return ([]int)(*kv)[start:end]
-}
+// func (kv *kvCacheValue) getRange(start, end int) []int {
+// 	return ([]int)(*kv)[start:end]
+// }
 
 func (kv *kvCacheValue) append(v int) {
 	*kv = append(*kv, v)
