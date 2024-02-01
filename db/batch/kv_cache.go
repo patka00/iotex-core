@@ -48,12 +48,9 @@ func newkvCacheValue(v []int) *kvCacheValue {
 // 	*kv = v
 // }
 
-var (
-	kvDefValue = newkvCacheValue([]int{0})
-)
-
 func (kv *kvCacheValue) reset() {
-	*kv = *kvDefValue
+	([]int)(*kv)[0] = 0
+	*kv = (*kv)[0:1]
 }
 
 func (kv *kvCacheValue) pop() {
