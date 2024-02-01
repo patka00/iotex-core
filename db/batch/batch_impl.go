@@ -266,7 +266,7 @@ func (cb *cachedBatch) touchKey(h kvCacheKey) {
 		return
 	}
 	if tags.last() != cb.tag {
-		cb.keyTags[h].append(cb.tag)
+		tags.append(cb.tag)
 		cb.tagKeys[cb.tag] = append(cb.tagKeys[cb.tag], h)
 	}
 }
@@ -344,8 +344,9 @@ func (cb *cachedBatch) RevertSnapshot(snapshot int) error {
 	for tag := cb.tag; tag < len(cb.tagKeys); tag++ {
 		keys := cb.tagKeys[tag]
 		for _, key := range keys {
-			cb.keyTags[key].set(cb.keyTags[key].getRange(0, cb.keyTags[key].len()-1))
-			if cb.keyTags[key].len() == 0 {
+			kv := cb.keyTags[key]
+			kv.set(kv.getRange(0, kv.len()-1))
+			if kv.len() == 0 {
 				delete(cb.keyTags, key)
 			}
 		}
