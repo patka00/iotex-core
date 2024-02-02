@@ -150,11 +150,6 @@ func (ws *workingSet) runAction(
 	if protocol.MustGetBlockCtx(ctx).GasLimit < protocol.MustGetActionCtx(ctx).IntrinsicGas {
 		return nil, action.ErrGasLimit
 	}
-	needLog, _ := ctx.Value(ctxRem{}).(bool)
-	var time1 time.Time
-	if needLog {
-		time1 = time.Now()
-	}
 	// Reject execution of chainID not equal the node's chainID
 	if !action.IsSystemAction(elp) {
 		if err := validateChainID(ctx, elp.ChainID()); err != nil {
@@ -171,16 +166,7 @@ func (ws *workingSet) runAction(
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to get hash")
 	}
-	if needLog {
-		log.L().Warn("runAction 0", zap.Duration("spent", time.Since(time1)))
-	}
-	defer func(needLog bool) {
-		time1 = time.Now()
-		ws.ResetSnapshots()
-		if needLog {
-			log.L().Warn("runAction defer", zap.Duration("spent", time.Since(time1)))
-		}
-	}(needLog)
+	defer ws.ResetSnapshots()
 	for _, actionHandler := range reg.All() {
 		receipt, err := actionHandler.Handle(ctx, elp.Action(), ws)
 		if err != nil {
@@ -511,15 +497,8 @@ func (ws *workingSet) pickAndRunActions(
 	blkCtx := protocol.MustGetBlockCtx(ctx)
 	ctxWithBlockContext := ctx
 	if ap != nil {
-		pendingMapLen := len(ap.PendingActionMap())
 		actionIterator := actioniterator.NewActionIterator(ap.PendingActionMap())
-		i := 0
-		var time1 time.Time
 		for {
-			i++
-			if i%1000 == 0 {
-				time1 = time.Now()
-			}
 			nextAction, ok := actionIterator.Next()
 			if !ok {
 				break
@@ -547,16 +526,7 @@ func (ws *workingSet) pickAndRunActions(
 				actionIterator.PopAccount()
 				continue
 			}
-			if i%1000 == 0 {
-				log.L().Warn("pickAndRunActions", zap.Duration("spent", time.Since(time1)), zap.Int("len", pendingMapLen))
-				time1 = time.Now()
-				actionCtx = context.WithValue(actionCtx, ctxRem{}, true)
-			}
 			receipt, err := ws.runAction(actionCtx, nextAction)
-			if i%1000 == 0 {
-				log.L().Warn("pickAndRunActions runAction", zap.Duration("spent", time.Since(time1)))
-				time1 = time.Now()
-			}
 			switch errors.Cause(err) {
 			case nil:
 				// do nothing
@@ -582,14 +552,8 @@ func (ws *workingSet) pickAndRunActions(
 			if blkCtx.GasLimit < allowedBlockGasResidue {
 				break
 			}
-			if i%1000 == 0 {
-				log.L().Warn("pickAndRunActions runAction end", zap.Duration("spent", time.Since(time1)))
-				// time1 = time.Now()
-			}
 		}
 	}
-	time1 := time.Now()
-
 	for _, selp := range postSystemActions {
 		actionCtx, err := withActionCtx(ctxWithBlockContext, selp)
 		if err != nil {
@@ -606,7 +570,6 @@ func (ws *workingSet) pickAndRunActions(
 		updateReceiptIndex(receipts)
 	}
 	ws.receipts = receipts
-	log.L().Warn("pickAndRunActions end", zap.Duration("spent", time.Since(time1)))
 	return executedActions, ws.finalize()
 }
 
