@@ -253,7 +253,7 @@ func StartServer(ctx context.Context, svr *Server, probeSvr *probe.Server, cfg c
 		mux.Handle("/debug/pprof/trace", http.HandlerFunc(pprof.Trace))
 
 		port := fmt.Sprintf(":%d", cfg.System.HTTPAdminPort)
-		adminserv = httputil.Server(port, mux, httputil.SetTimeout(50*time.Second, 70*time.Second, 120*time.Second))
+		adminserv = httputil.Server(port, mux, httputil.SetTimeout(800*time.Second, 800*time.Second, 120*time.Second))
 		// defer func() {
 		// 	if err := adminserv.Shutdown(ctx); err != nil {
 		// 		log.L().Error("Error when serving metrics data.", zap.Error(err))
