@@ -322,11 +322,12 @@ func (b *BoltDB) WriteBatch(kvsb batch.KVStoreBatch) (err error) {
 					var bucket *bolt.Bucket
 					var e error
 					if _, ok := nsMap[ns]; !ok {
+						time2 := time.Now()
 						bucket, e = tx.CreateBucketIfNotExists([]byte(ns))
 						if e != nil {
 							return errors.Wrap(e, write.Error())
 						}
-						log.L().Warn("CreateBucketIfNotExists", zap.String("namespace", ns), zap.String("error", e.Error()))
+						log.L().Warn("CreateBucketIfNotExists", zap.String("namespace", ns), zap.Duration("spent", time.Now().Sub(time2)))
 						nsMap[ns] = struct{}{}
 					}
 					if p, ok := kvsb.CheckFillPercent(ns); ok {
