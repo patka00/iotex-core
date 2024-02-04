@@ -51,7 +51,6 @@ func (b *BoltDB) Start(_ context.Context) error {
 	if b.config.ReadOnly {
 		opts.ReadOnly = true
 	}
-	// opts.NoSync = true
 	db, err := bolt.Open(b.path, _fileMode, &opts)
 	if err != nil {
 		return errors.Wrap(ErrIO, err.Error())
@@ -298,6 +297,13 @@ func (b *BoltDB) Delete(namespace string, key []byte) (err error) {
 	return err
 }
 
+type batchPut struct {
+	total int
+	avg   time.Duration
+	min   time.Duration
+	max   time.Duration
+}
+
 // WriteBatch commits a batch
 func (b *BoltDB) WriteBatch(kvsb batch.KVStoreBatch) (err error) {
 	if !b.IsReady() {
@@ -307,10 +313,10 @@ func (b *BoltDB) WriteBatch(kvsb batch.KVStoreBatch) (err error) {
 	kvsb.Lock()
 	defer kvsb.Unlock()
 	time1 := time.Now()
+	putPerf := make(map[string]*batchPut)
 	log.L().Warn("WriteBatch Start", zap.Int("size", kvsb.Size()))
-	nsbucketMap := make(map[string]*bolt.Bucket)
 	for c := uint8(0); c < b.config.NumRetries; c++ {
-		if err = b.db.Update(func(tx *bolt.Tx) error {
+		if err = b.db.Batch(func(tx *bolt.Tx) error {
 			for i := 0; i < kvsb.Size(); i++ {
 				write, e := kvsb.Entry(i)
 				if e != nil {
@@ -319,30 +325,28 @@ func (b *BoltDB) WriteBatch(kvsb batch.KVStoreBatch) (err error) {
 				ns := write.Namespace()
 				switch write.WriteType() {
 				case batch.Put:
-					var bucket *bolt.Bucket
-					var e error
-					var ok bool
-					if bucket, ok = nsbucketMap[ns]; !ok {
-						time2 := time.Now()
-						bucket, e = tx.CreateBucketIfNotExists([]byte(ns))
-						if e != nil {
-							return errors.Wrap(e, write.Error())
-						}
-						log.L().Warn("CreateBucketIfNotExists", zap.String("namespace", ns), zap.Duration("spent", time.Now().Sub(time2)))
-						nsbucketMap[ns] = bucket
+					bucket, e := tx.CreateBucketIfNotExists([]byte(ns))
+					if e != nil {
+						return errors.Wrap(e, write.Error())
 					}
 					if p, ok := kvsb.CheckFillPercent(ns); ok {
 						bucket.FillPercent = p
 					}
-					var time2 time.Time
-					if i%200 == 0 {
-						time2 = time.Now()
+					if _, ok := putPerf[ns]; !ok {
+						putPerf[ns] = &batchPut{}
 					}
+					start := time.Now()
 					if e := bucket.Put(write.Key(), write.Value()); e != nil {
 						return errors.Wrap(e, write.Error())
 					}
-					if i%200 == 0 {
-						log.L().Warn("WriteBatch Put End", zap.String("namespace", ns), zap.Int("keyLen", len(write.Key())), zap.Int("valueLen", len(write.Value())), zap.Duration("spent", time.Now().Sub(time2)))
+					elapsed := time.Since(start)
+					putPerf[ns].total++
+					putPerf[ns].avg += elapsed
+					if putPerf[ns].min == 0 || putPerf[ns].min > elapsed {
+						putPerf[ns].min = elapsed
+					}
+					if putPerf[ns].max < elapsed {
+						putPerf[ns].max = elapsed
 					}
 				case batch.Delete:
 					bucket := tx.Bucket([]byte(ns))
@@ -357,6 +361,12 @@ func (b *BoltDB) WriteBatch(kvsb batch.KVStoreBatch) (err error) {
 			return nil
 		}); err == nil {
 			break
+		}
+	}
+	for ns, p := range putPerf {
+		if p.total > 0 {
+			avg := p.avg / time.Duration(p.total)
+			log.L().Warn("WriteBatch Perf", zap.String("ns", ns), zap.Int("total", p.total), zap.Duration("avg", avg), zap.Duration("min", p.min), zap.Duration("max", p.max))
 		}
 	}
 	log.L().Warn("WriteBatch End", zap.Int("size", kvsb.Size()), zap.Duration("spent", time.Now().Sub(time1)))
