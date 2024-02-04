@@ -366,7 +366,7 @@ func (b *BoltDB) WriteBatch(kvsb batch.KVStoreBatch) (err error) {
 	for ns, p := range putPerf {
 		if p.total > 0 {
 			avg := p.avg / time.Duration(p.total)
-			log.L().Warn("WriteBatch Perf", zap.String("ns", ns), zap.Int("total", p.total), zap.Duration("avg", avg), zap.Duration("min", p.min), zap.Duration("max", p.max))
+			log.L().Warn("WriteBatch Perf", zap.String("ns", ns), zap.Int("nums", p.total), zap.Duration("avg", avg), zap.Duration("min", p.min), zap.Duration("max", p.max), zap.Duration("total", p.avg))
 		}
 	}
 	log.L().Warn("WriteBatch End", zap.Int("size", kvsb.Size()), zap.Duration("spent", time.Now().Sub(time1)))
