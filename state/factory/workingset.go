@@ -35,12 +35,20 @@ var (
 		},
 		[]string{"type"},
 	)
+	_ActionMtc = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "iotex_mint_actions",
+			Help: "IoTeX Mint Actions",
+		},
+		[]string{"type"},
+	)
 
 	errInvalidSystemActionLayout = errors.New("system action layout is invalid")
 )
 
 func init() {
 	prometheus.MustRegister(_stateDBMtc)
+	prometheus.MustRegister(_ActionMtc)
 }
 
 type (
@@ -496,14 +504,34 @@ func (ws *workingSet) pickAndRunActions(
 	// initial action iterator
 	blkCtx := protocol.MustGetBlockCtx(ctx)
 	ctxWithBlockContext := ctx
+	actCnt := 0
+	largeGasCnt := 0
+	invalidCnt := 0
+	chainIDCnt := 0
+	largeGasCnt2 := 0
+	runErrCnt := 0
+	defer func() {
+		_ActionMtc.WithLabelValues("actCnt").Set(float64(actCnt))
+		_ActionMtc.WithLabelValues("largeGasCnt").Set(float64(largeGasCnt))
+		_ActionMtc.WithLabelValues("invalidCnt").Set(float64(invalidCnt))
+		_ActionMtc.WithLabelValues("chainIDCnt").Set(float64(chainIDCnt))
+		_ActionMtc.WithLabelValues("largeGasCnt2").Set(float64(largeGasCnt2))
+		_ActionMtc.WithLabelValues("runErrCnt").Set(float64(runErrCnt))
+		_ActionMtc.WithLabelValues("executedCnt").Set(float64(len(executedActions)))
+	}()
 	if ap != nil {
-		actionIterator := actioniterator.NewActionIterator(ap.PendingActionMap())
+		pendingActMaps := ap.PendingActionMap()
+		for k := range pendingActMaps {
+			actCnt += len(pendingActMaps[k])
+		}
+		actionIterator := actioniterator.NewActionIterator(pendingActMaps)
 		for {
 			nextAction, ok := actionIterator.Next()
 			if !ok {
 				break
 			}
 			if nextAction.GasLimit() > blkCtx.GasLimit {
+				largeGasCnt += len(pendingActMaps[nextAction.SenderAddress().String()])
 				actionIterator.PopAccount()
 				continue
 			}
@@ -524,6 +552,7 @@ func (ws *workingSet) pickAndRunActions(
 				}
 				ap.DeleteAction(caller)
 				actionIterator.PopAccount()
+				invalidCnt += len(pendingActMaps[caller.String()])
 				continue
 			}
 			receipt, err := ws.runAction(actionCtx, nextAction)
@@ -531,11 +560,14 @@ func (ws *workingSet) pickAndRunActions(
 			case nil:
 				// do nothing
 			case action.ErrChainID:
+				chainIDCnt++
 				continue
 			case action.ErrGasLimit:
+				largeGasCnt2 += len(pendingActMaps[nextAction.SenderAddress().String()])
 				actionIterator.PopAccount()
 				continue
 			default:
+				runErrCnt++
 				nextActionHash, hashErr := nextAction.Hash()
 				if hashErr != nil {
 					return nil, errors.Wrapf(hashErr, "Failed to get hash for %x", nextActionHash)
