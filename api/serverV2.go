@@ -7,8 +7,10 @@ package api
 
 import (
 	"context"
+	"time"
 
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
 
@@ -23,6 +25,20 @@ import (
 	"github.com/iotexproject/iotex-core/state/factory"
 )
 
+var (
+	_blockchainServerMtc = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "block_chain_server",
+			Help: "Block chain server metrics.",
+		},
+		[]string{"type"},
+	)
+)
+
+func init() {
+	prometheus.MustRegister(_blockchainServerMtc)
+}
+
 // ServerV2 provides api for user to interact with blockchain data
 type ServerV2 struct {
 	core         CoreService
@@ -30,6 +46,7 @@ type ServerV2 struct {
 	httpSvr      *HTTPServer
 	websocketSvr *HTTPServer
 	tracer       *tracesdk.TracerProvider
+	isRunning    bool
 }
 
 // NewServerV2 creates a new server with coreService and GRPC Server
@@ -94,11 +111,18 @@ func (svr *ServerV2) Start(ctx context.Context) error {
 			return err
 		}
 	}
+	svr.isRunning = true
+	go func() {
+		for range time.Tick(5 * time.Second) {
+			svr.updateMetrics()
+		}
+	}()
 	return nil
 }
 
 // Stop stops the GRPC server and the CoreService
 func (svr *ServerV2) Stop(ctx context.Context) error {
+	svr.isRunning = false
 	if svr.tracer != nil {
 		if err := svr.tracer.Shutdown(ctx); err != nil {
 			return errors.Wrap(err, "failed to shutdown api tracer")
@@ -133,4 +157,24 @@ func (svr *ServerV2) ReceiveBlock(blk *block.Block) error {
 // CoreService returns the coreservice of the api
 func (svr *ServerV2) CoreService() CoreService {
 	return svr.core
+}
+
+func (svr *ServerV2) updateMetrics() {
+	if !svr.isRunning {
+		return
+	}
+	core := svr.CoreService()
+	tipHeight := core.TipHeight()
+	blk, err := core.BlockByHeight(tipHeight)
+	if err != nil {
+		return
+	}
+	var gasUsed uint64
+	for _, r := range blk.Receipts {
+		gasUsed += r.GasConsumed
+	}
+	blockGasLimit := core.(*coreService).bc.Genesis().BlockGasLimit
+	_blockchainServerMtc.WithLabelValues("height").Set(float64(tipHeight))
+	_blockchainServerMtc.WithLabelValues("gas_limited").Set(float64(blockGasLimit))
+	_blockchainServerMtc.WithLabelValues("gas_used").Set(float64(gasUsed))
 }
