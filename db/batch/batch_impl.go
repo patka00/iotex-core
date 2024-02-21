@@ -387,6 +387,9 @@ func (cb *cachedBatch) ResetSnapshots() {
 	_snapshotCounter.WithLabelValues("ResetSnapshots").Inc()
 	_snapshotGauge.WithLabelValues("keyNum").Set(float64(len(cb.keyTags)))
 	_snapshotGauge.WithLabelValues("tagNum").Set(float64(cb.tag))
+	if cb.tag < 10 {
+		return
+	}
 	cb.tag = 0
 	cb.batchShots = nil
 	cb.batchShots = make([]int, 0)
