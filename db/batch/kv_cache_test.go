@@ -12,9 +12,9 @@ import (
 )
 
 var (
-	k1 = &kvCacheKey{"ns", "key"}
-	k2 = &kvCacheKey{"nsk", "ey"}
-	k3 = &kvCacheKey{"n", "skey"}
+	k1 = newKVCacheKey("ns", "key")
+	k2 = newKVCacheKey("nsk", "ey")
+	k3 = newKVCacheKey("n", "skey")
 
 	v1 = []byte("value_1")
 	v2 = []byte("value_2")

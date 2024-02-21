@@ -5,6 +5,16 @@
 
 package batch
 
+import (
+	"strings"
+
+	"github.com/iotexproject/iotex-core/pkg/log"
+)
+
+const (
+	kvCacheKeyDelimiter = "##"
+)
+
 type (
 	// KVStoreCache is a local cache of batched <k, v> for fast query
 	KVStoreCache interface {
@@ -23,10 +33,7 @@ type (
 	}
 
 	// kvCacheKey is the key for 2D Map cache
-	kvCacheKey struct {
-		key1 string
-		key2 string
-	}
+	kvCacheKey   string
 	kvCacheValue []int
 
 	node struct {
@@ -39,6 +46,30 @@ type (
 		cache map[string]map[string]*node // local cache of batched <k, v> for fast query
 	}
 )
+
+func newKVCacheKey(key1, key2 string) *kvCacheKey {
+	if strings.Contains(key1, kvCacheKeyDelimiter) {
+		log.L().Panic("key1 contains delimiter")
+	}
+	k := kvCacheKey(key1 + kvCacheKeyDelimiter + key2)
+	return &k
+}
+
+func (k *kvCacheKey) delimiterIndex() int {
+	idx := strings.Index(string(*k), kvCacheKeyDelimiter)
+	if idx == -1 {
+		log.L().Panic("delimiter not found")
+	}
+	return idx
+}
+
+func (k *kvCacheKey) Key1() string {
+	return string((*k)[:k.delimiterIndex()])
+}
+
+func (k *kvCacheKey) Key2() string {
+	return string((*k)[k.delimiterIndex()+len(kvCacheKeyDelimiter):])
+}
 
 func newkvCacheValue(v []int) *kvCacheValue {
 	return (*kvCacheValue)(&v)
@@ -89,8 +120,8 @@ func NewKVCache() KVStoreCache {
 
 // Read retrieves a record
 func (c *kvCache) Read(key *kvCacheKey) ([]byte, error) {
-	if ns, ok := c.cache[key.key1]; ok {
-		if node, ok := ns[key.key2]; ok {
+	if ns, ok := c.cache[key.Key1()]; ok {
+		if node, ok := ns[key.Key2()]; ok {
 			if node.deleted {
 				return nil, ErrAlreadyDeleted
 			}
@@ -102,10 +133,12 @@ func (c *kvCache) Read(key *kvCacheKey) ([]byte, error) {
 
 // Write puts a record into cache
 func (c *kvCache) Write(key *kvCacheKey, v []byte) {
-	if _, ok := c.cache[key.key1]; !ok {
-		c.cache[key.key1] = make(map[string]*node)
+	k1 := key.Key1()
+	k2 := key.Key2()
+	if _, ok := c.cache[k1]; !ok {
+		c.cache[k1] = make(map[string]*node)
 	}
-	c.cache[key.key1][key.key2] = &node{
+	c.cache[k1][k2] = &node{
 		value:   v,
 		deleted: false,
 	}
@@ -113,13 +146,15 @@ func (c *kvCache) Write(key *kvCacheKey, v []byte) {
 
 // WriteIfNotExist puts a record into cache only if it doesn't exist, otherwise return ErrAlreadyExist
 func (c *kvCache) WriteIfNotExist(key *kvCacheKey, v []byte) error {
-	if _, ok := c.cache[key.key1]; !ok {
-		c.cache[key.key1] = make(map[string]*node)
+	k1 := key.Key1()
+	k2 := key.Key2()
+	if _, ok := c.cache[k1]; !ok {
+		c.cache[k1] = make(map[string]*node)
 	}
-	if node, ok := c.cache[key.key1][key.key2]; ok && !node.deleted {
+	if node, ok := c.cache[k1][k2]; ok && !node.deleted {
 		return ErrAlreadyExist
 	}
-	c.cache[key.key1][key.key2] = &node{
+	c.cache[k1][k2] = &node{
 		value:   v,
 		deleted: false,
 	}
@@ -128,10 +163,12 @@ func (c *kvCache) WriteIfNotExist(key *kvCacheKey, v []byte) error {
 
 // Evict deletes a record from cache
 func (c *kvCache) Evict(key *kvCacheKey) {
-	if _, ok := c.cache[key.key1]; !ok {
-		c.cache[key.key1] = make(map[string]*node)
+	k1 := key.Key1()
+	k2 := key.Key2()
+	if _, ok := c.cache[k1]; !ok {
+		c.cache[k1] = make(map[string]*node)
 	}
-	c.cache[key.key1][key.key2] = &node{
+	c.cache[k1][k2] = &node{
 		value:   nil,
 		deleted: true,
 	}

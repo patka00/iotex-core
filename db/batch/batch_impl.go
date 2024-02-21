@@ -9,6 +9,24 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
+)
+
+var (
+	_snapshotCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "iotex_db_snapshot_counter",
+			Help: "DB snapshot counter",
+		},
+		[]string{"method"},
+	)
+	_snapshotGauge = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "iotex_db_snapshot_gauge",
+			Help: "DB snapshot gauge",
+		},
+		[]string{"method"},
+	)
 )
 
 type (
@@ -31,6 +49,11 @@ type (
 		tagKeys      [][]kvCacheKey
 	}
 )
+
+func init() {
+	prometheus.MustRegister(_snapshotCounter)
+	prometheus.MustRegister(_snapshotGauge)
+}
 
 func newBaseKVStoreBatch() *baseKVStoreBatch {
 	return &baseKVStoreBatch{
@@ -322,6 +345,7 @@ func (cb *cachedBatch) Snapshot() int {
 	cb.lock.Lock()
 	defer cb.lock.Unlock()
 	defer func() { cb.tag++ }()
+	_snapshotCounter.WithLabelValues("Snapshot").Inc()
 	// save a copy of current batch/cache
 	cb.batchShots = append(cb.batchShots, cb.kvStoreBatch.Size())
 	cb.caches = append(cb.caches, NewKVCache())
@@ -332,6 +356,7 @@ func (cb *cachedBatch) Snapshot() int {
 func (cb *cachedBatch) RevertSnapshot(snapshot int) error {
 	cb.lock.Lock()
 	defer cb.lock.Unlock()
+	_snapshotCounter.WithLabelValues("RevertSnapshot").Inc()
 	// throw error if the snapshot number does not exist
 	if snapshot < 0 || snapshot >= cb.tag {
 		return errors.Wrapf(ErrOutOfBound, "invalid snapshot number = %d", snapshot)
@@ -359,7 +384,9 @@ func (cb *cachedBatch) RevertSnapshot(snapshot int) error {
 func (cb *cachedBatch) ResetSnapshots() {
 	cb.lock.Lock()
 	defer cb.lock.Unlock()
-
+	_snapshotCounter.WithLabelValues("ResetSnapshots").Inc()
+	_snapshotGauge.WithLabelValues("keyNum").Set(float64(len(cb.keyTags)))
+	_snapshotGauge.WithLabelValues("tagNum").Set(float64(cb.tag))
 	cb.tag = 0
 	cb.batchShots = nil
 	cb.batchShots = make([]int, 0)
@@ -388,5 +415,5 @@ func (cb *cachedBatch) AddFillPercent(ns string, percent float64) {
 }
 
 func (cb *cachedBatch) hash(namespace string, key []byte) kvCacheKey {
-	return kvCacheKey{namespace, string(key)}
+	return *newKVCacheKey(namespace, string(key))
 }

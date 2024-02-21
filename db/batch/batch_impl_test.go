@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/iotexproject/go-pkgs/hash"
 
@@ -268,4 +269,64 @@ func BenchmarkCachedBatch_Snapshot(b *testing.B) {
 		_, _ = cb.Get(_bucket1, k[:])
 		cb.Delete(_bucket1, k[:], "")
 	}
+}
+
+func BenchmarkCachedBatch_MapKeyStruct(b *testing.B) {
+	m := map[kvCacheKey]struct{}{}
+	buckets := []string{"bucket1", "bucket2", "bucket3", "bucket4", "bucket5"}
+	keyKindSize := 50000000
+	for i := 0; i < 20000000; i++ {
+		randBucket := buckets[rand.Intn(len(buckets))]
+		randKey := hash.Hash256b(append([]byte(strconv.Itoa(rand.Intn(keyKindSize))), []byte("testkey")...))
+		k := newKVCacheKey(randBucket, string(randKey[:]))
+		m[*k] = struct{}{}
+	}
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		for range m {
+
+		}
+	}
+}
+
+func BenchmarkCachedBatch_MapKeyString(b *testing.B) {
+	m := map[string]struct{}{}
+	buckets := []string{"bucket1", "bucket2", "bucket3", "bucket4", "bucket5"}
+	keyKindSize := 50000000
+	for i := 0; i < 20000000; i++ {
+		randBucket := buckets[rand.Intn(len(buckets))]
+		randKey := hash.Hash256b(append([]byte(strconv.Itoa(rand.Intn(keyKindSize))), []byte("testkey")...))
+		k := randBucket + "#" + string(randKey[:])
+		m[k] = struct{}{}
+	}
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		for range m {
+		}
+	}
+}
+
+func TestResetSnapshots(t *testing.T) {
+	cb := NewCachedBatch()
+	buckets := []string{"bucket1", "bucket2", "bucket3", "bucket4", "bucket5"}
+	keyKindSize := 5000000
+	for i := 0; i < 200; i++ {
+		randBucket := buckets[rand.Intn(len(buckets))]
+		randKey := hash.Hash256b(append([]byte(strconv.Itoa(rand.Intn(keyKindSize))), []byte("testkey")...))
+		randValue := make([]byte, 128)
+		for i := range randValue {
+			randValue[i] = byte(rand.Intn(8))
+		}
+		randOp := rand.Intn(2)
+		if randOp == 0 {
+			cb.Put(randBucket, randKey[:], randValue, "")
+		} else {
+			cb.Delete(randBucket, randKey[:], "")
+		}
+	}
+	// time to reset snapshots
+	timeStart := time.Now()
+	cb.ResetSnapshots()
+	timeEnd := time.Now()
+	t.Logf("ResetSnapshots takes %+v", timeEnd.Sub(timeStart))
 }
