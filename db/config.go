@@ -48,5 +48,5 @@ var DefaultConfig = Config{
 	SplitDBSizeMB:         0,
 	SplitDBHeight:         900000,
 	HistoryStateRetention: 2000,
-	NoSync:                true,
+	NoSync:                false,
 }
