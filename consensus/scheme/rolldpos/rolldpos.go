@@ -177,7 +177,7 @@ func (r *RollDPoS) Stop(ctx context.Context) error {
 
 // HandleConsensusMsg handles incoming consensus message
 func (r *RollDPoS) HandleConsensusMsg(msg *iotextypes.ConsensusMessage) error {
-	log.L().Warn("Handling consensus message", zap.Bool("ctx.Active", r.ctx.Active()), zap.Uint64("consensusHeight", r.ctx.Height()), zap.Uint64("msgHeight", msg.Height))
+	// log.L().Warn("Handling consensus message", zap.Bool("ctx.Active", r.ctx.Active()), zap.Uint64("consensusHeight", r.ctx.Height()), zap.Uint64("msgHeight", msg.Height))
 	// Do not handle consensus message if the node is not active in consensus
 	if !r.ctx.Active() {
 		return nil
@@ -213,15 +213,15 @@ func (r *RollDPoS) HandleConsensusMsg(msg *iotextypes.ConsensusMessage) error {
 	en := endorsedMessage.Endorsement()
 	switch consensusMessage := endorsedMessage.Document().(type) {
 	case *blockProposal:
-		bhash := consensusMessage.block.HashBlock()
-		log.L().Warn("Handling consensus blockProposal message", zap.Uint64("block height", consensusMessage.Height()), zap.Int("block action size", len(consensusMessage.block.Actions)), log.Hex("block Hash", bhash[:]))
+		// bhash := consensusMessage.block.HashBlock()
+		// log.L().Warn("Handling consensus blockProposal message", zap.Uint64("block height", consensusMessage.Height()), zap.Int("block action size", len(consensusMessage.block.Actions)), log.Hex("block Hash", bhash[:]))
 		if err := r.ctx.CheckBlockProposer(endorsedMessage.Height(), consensusMessage, en); err != nil {
 			return errors.Wrap(err, "failed to verify block proposal")
 		}
 		r.cfsm.ProduceReceiveBlockEvent(endorsedMessage)
 		return nil
 	case *ConsensusVote:
-		log.L().Warn("Handling consensus ConsensusVote message", zap.Uint64("endorsedMessage height", endorsedMessage.Height()), zap.String("consensusMessage topic", consensusMessage.Topic().String()))
+		// log.L().Warn("Handling consensus ConsensusVote message", zap.Uint64("endorsedMessage height", endorsedMessage.Height()), zap.String("consensusMessage topic", consensusMessage.Topic().String()))
 		if err := r.ctx.CheckVoteEndorser(endorsedMessage.Height(), consensusMessage, en); err != nil {
 			return errors.Wrapf(err, "failed to verify vote")
 		}

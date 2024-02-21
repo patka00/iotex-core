@@ -271,7 +271,7 @@ func (m *ConsensusFSM) Calibrate(height uint64) {
 func (m *ConsensusFSM) BackToPrepare(delay time.Duration) (fsm.State, error) {
 	// If the node is not active in consensus, stay at sPrepare and no need to produce ePrepare
 	if m.ctx.Active() {
-		m.ctx.Logger().WithOptions(zap.AddCaller()).Warn("node active, Back to prepare state")
+		// m.ctx.Logger().WithOptions(zap.AddCaller()).Warn("node active, Back to prepare state")
 		m.produceConsensusEvent(ePrepare, delay)
 	}
 	return sPrepare, nil
@@ -339,12 +339,12 @@ func (m *ConsensusFSM) handle(evt *ConsensusEvent) error {
 	err := m.fsm.Handle(evt)
 	switch errors.Cause(err) {
 	case nil:
-		m.ctx.Logger().Debug(
-			"consensus state transition happens",
-			zap.String("src", string(src)),
-			zap.String("dst", string(m.fsm.CurrentState())),
-			zap.String("evt", string(evt.Type())),
-		)
+		// m.ctx.Logger().Debug(
+		// 	"consensus state transition happens",
+		// 	zap.String("src", string(src)),
+		// 	zap.String("dst", string(m.fsm.CurrentState())),
+		// 	zap.String("evt", string(evt.Type())),
+		// )
 		_consensusEvtsMtc.WithLabelValues(string(evt.Type()), "consumed").Inc()
 	case fsm.ErrTransitionNotFound:
 		if m.ctx.IsStaleUnmatchedEvent(evt) {
@@ -352,12 +352,12 @@ func (m *ConsensusFSM) handle(evt *ConsensusEvent) error {
 			return nil
 		}
 		m.produce(evt, m.ctx.UnmatchedEventInterval(evt.Height()))
-		m.ctx.Logger().WithOptions(zap.AddStacktrace(zap.WarnLevel)).Warn(
-			"consensus state transition could find the match",
-			zap.String("src", string(src)),
-			zap.String("evt", string(evt.Type())),
-			zap.Error(err),
-		)
+		// m.ctx.Logger().WithOptions(zap.AddStacktrace(zap.WarnLevel)).Warn(
+		// 	"consensus state transition could find the match",
+		// 	zap.String("src", string(src)),
+		// 	zap.String("evt", string(evt.Type())),
+		// 	zap.Error(err),
+		// )
 		_consensusEvtsMtc.WithLabelValues(string(evt.Type()), "backoff").Inc()
 	case ErrOldCalibrateEvt:
 		m.ctx.Logger().WithOptions(zap.AddStacktrace(zap.WarnLevel)).Warn(
@@ -388,21 +388,21 @@ func (m *ConsensusFSM) calibrate(evt fsm.Event) (fsm.State, error) {
 	if consensusHeight > height {
 		return sPrepare, ErrOldCalibrateEvt
 	}
-	m.ctx.Logger().Debug(
-		"Calibrate consensus context",
-		zap.Uint64("consensusHeight", consensusHeight),
-		zap.Uint64("height", height),
-	)
+	// m.ctx.Logger().Debug(
+	// 	"Calibrate consensus context",
+	// 	zap.Uint64("consensusHeight", consensusHeight),
+	// 	zap.Uint64("height", height),
+	// )
 	return m.BackToPrepare(0)
 }
 
 func (m *ConsensusFSM) prepare(evt fsm.Event) (fsm.State, error) {
-	m.ctx.Logger().Warn("enter prepare state")
+	// m.ctx.Logger().Warn("enter prepare state")
 	if err := m.ctx.Prepare(); err != nil {
 		m.ctx.Logger().Error("Error during prepare", zap.Error(err))
 		return m.BackToPrepare(0)
 	}
-	m.ctx.Logger().Warn("Start a new round")
+	// m.ctx.Logger().Warn("Start a new round")
 	proposal, err := m.ctx.Proposal()
 	if err != nil {
 		m.ctx.Logger().Error("failed to generate block proposal", zap.Error(err))
@@ -410,13 +410,13 @@ func (m *ConsensusFSM) prepare(evt fsm.Event) (fsm.State, error) {
 	}
 
 	overtime := m.ctx.WaitUntilRoundStart()
-	m.ctx.Logger().Warn("overtime", zap.Duration("overtime", overtime), zap.Any("proposal", proposal))
+	// m.ctx.Logger().Warn("overtime", zap.Duration("overtime", overtime), zap.Any("proposal", proposal))
 	if proposal != nil {
-		m.ctx.Logger().Warn("Propose a new block")
+		// m.ctx.Logger().Warn("Propose a new block")
 
 		m.ctx.Broadcast(proposal)
 	}
-	m.ctx.Logger().Warn("checking if delegate", zap.Bool("isDelegate", m.ctx.IsDelegate()))
+	// m.ctx.Logger().Warn("checking if delegate", zap.Bool("isDelegate", m.ctx.IsDelegate()))
 	if !m.ctx.IsDelegate() {
 		return m.BackToPrepare(0)
 	}
@@ -454,7 +454,7 @@ func (m *ConsensusFSM) prepare(evt fsm.Event) (fsm.State, error) {
 }
 
 func (m *ConsensusFSM) onReceiveBlock(evt fsm.Event) (fsm.State, error) {
-	m.ctx.Logger().Warn("ConsensusFSM Receive block")
+	// m.ctx.Logger().Warn("ConsensusFSM Receive block")
 	cEvt, ok := evt.(*ConsensusEvent)
 	if !ok {
 		m.ctx.Logger().Error("invalid fsm event", zap.Any("event", evt))
@@ -469,7 +469,7 @@ func (m *ConsensusFSM) onReceiveBlock(evt fsm.Event) (fsm.State, error) {
 }
 
 func (m *ConsensusFSM) processBlock(block interface{}) error {
-	m.ctx.Logger().Warn("ConsensusFSM processBlock")
+	// m.ctx.Logger().Warn("ConsensusFSM processBlock")
 	en, err := m.ctx.NewProposalEndorsement(block)
 	if err != nil {
 		return err
@@ -480,7 +480,7 @@ func (m *ConsensusFSM) processBlock(block interface{}) error {
 }
 
 func (m *ConsensusFSM) onFailedToReceiveBlock(evt fsm.Event) (fsm.State, error) {
-	m.ctx.Logger().WithOptions(zap.AddStacktrace(zap.WarnLevel)).With(zap.Int("NumPendingEvents", m.NumPendingEvents())).Warn("ConsensusFSM onFailedToReceiveBlock")
+	// m.ctx.Logger().WithOptions(zap.AddStacktrace(zap.WarnLevel)).With(zap.Int("NumPendingEvents", m.NumPendingEvents())).Warn("ConsensusFSM onFailedToReceiveBlock")
 	if err := m.processBlock(nil); err != nil {
 		m.ctx.Logger().WithOptions(zap.AddStacktrace(zap.ErrorLevel)).Error("Failed to generate proposal endorsement", zap.Error(err))
 	}
@@ -490,7 +490,7 @@ func (m *ConsensusFSM) onFailedToReceiveBlock(evt fsm.Event) (fsm.State, error) 
 }
 
 func (m *ConsensusFSM) onReceiveProposalEndorsementInAcceptLockEndorsementState(evt fsm.Event) (fsm.State, error) {
-	m.ctx.Logger().WithOptions(zap.AddStacktrace(zap.WarnLevel)).With(zap.Int("NumPendingEvents", m.NumPendingEvents())).Warn("ConsensusFSM onReceiveProposalEndorsementInAcceptLockEndorsementState")
+	// m.ctx.Logger().WithOptions(zap.AddStacktrace(zap.WarnLevel)).With(zap.Int("NumPendingEvents", m.NumPendingEvents())).Warn("ConsensusFSM onReceiveProposalEndorsementInAcceptLockEndorsementState")
 	return m.onReceiveProposalEndorsement(evt, sAcceptLockEndorsement)
 }
 
@@ -505,7 +505,7 @@ func (m *ConsensusFSM) onReceiveProposalEndorsement(evt fsm.Event, currentState 
 	}
 	lockEndorsement, err := m.ctx.NewLockEndorsement(cEvt.Data())
 	if err != nil {
-		m.ctx.Logger().WithOptions(zap.AddStacktrace(zap.WarnLevel)).Warn("Failed to add proposal endorsement", zap.Error(err))
+		// m.ctx.Logger().WithOptions(zap.AddStacktrace(zap.WarnLevel)).Warn("Failed to add proposal endorsement", zap.Error(err))
 		return currentState, nil
 	}
 	if lockEndorsement == nil {
@@ -519,8 +519,6 @@ func (m *ConsensusFSM) onReceiveProposalEndorsement(evt fsm.Event, currentState 
 }
 
 func (m *ConsensusFSM) onStopReceivingProposalEndorsement(evt fsm.Event) (fsm.State, error) {
-	m.ctx.Logger().WithOptions(zap.AddStacktrace(zap.WarnLevel)).Warn("Not enough proposal endorsements", zap.Any("evt", evt.Type()))
-
 	return sAcceptLockEndorsement, nil
 }
 
@@ -547,14 +545,14 @@ func (m *ConsensusFSM) onBroadcastPreCommitEndorsement(evt fsm.Event) (fsm.State
 	if !ok {
 		return sAcceptPreCommitEndorsement, errors.Wrap(ErrEvtCast, "failed to cast to consensus event")
 	}
-	m.ctx.Logger().Debug("broadcast pre-commit endorsement")
+	// m.ctx.Logger().Debug("broadcast pre-commit endorsement")
 	m.ctx.Broadcast(cEvt.Data())
 
 	return sAcceptPreCommitEndorsement, nil
 }
 
 func (m *ConsensusFSM) onStopReceivingLockEndorsement(evt fsm.Event) (fsm.State, error) {
-	m.ctx.Logger().WithOptions(zap.AddStacktrace(zap.WarnLevel)).With(zap.Int("NumPendingEvents", m.NumPendingEvents())).Warn("Not enough lock endorsements")
+	// m.ctx.Logger().WithOptions(zap.AddStacktrace(zap.WarnLevel)).With(zap.Int("NumPendingEvents", m.NumPendingEvents())).Warn("Not enough lock endorsements")
 
 	return m.BackToPrepare(0)
 }
@@ -572,7 +570,7 @@ func (m *ConsensusFSM) onReceivePreCommitEndorsement(evt fsm.Event) (fsm.State, 
 }
 
 func (m *ConsensusFSM) onStopReceivingPreCommitEndorsement(evt fsm.Event) (fsm.State, error) {
-	m.ctx.Logger().WithOptions(zap.AddCaller()).With(zap.Int("NumPendingEvents", m.NumPendingEvents())).Warn("Not enough pre-commit endorsements")
+	// m.ctx.Logger().WithOptions(zap.AddCaller()).With(zap.Int("NumPendingEvents", m.NumPendingEvents())).Warn("Not enough pre-commit endorsements")
 
 	return m.BackToPrepare(0)
 }
