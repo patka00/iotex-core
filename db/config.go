@@ -28,6 +28,8 @@ type Config struct {
 	HistoryStateRetention uint64 `yaml:"historyStateRetention"`
 	// ReadOnly is set db to be opened in read only mode
 	ReadOnly bool `yaml:"readOnly"`
+	//NoSync is set db to be opened in async mode
+	NoSync bool `yaml:"nosync"`
 }
 
 // SplitDBSize returns the configured SplitDBSizeMB
@@ -46,4 +48,5 @@ var DefaultConfig = Config{
 	SplitDBSizeMB:         0,
 	SplitDBHeight:         900000,
 	HistoryStateRetention: 2000,
+	NoSync:                true,
 }

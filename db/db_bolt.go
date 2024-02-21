@@ -51,6 +51,9 @@ func (b *BoltDB) Start(_ context.Context) error {
 	if b.config.ReadOnly {
 		opts.ReadOnly = true
 	}
+	if b.config.NoSync {
+		opts.NoSync = true
+	}
 	db, err := bolt.Open(b.path, _fileMode, &opts)
 	if err != nil {
 		return errors.Wrap(ErrIO, err.Error())
