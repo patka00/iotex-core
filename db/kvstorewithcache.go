@@ -5,9 +5,20 @@ import (
 	"sync"
 
 	"github.com/iotexproject/go-pkgs/cache"
+	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/iotexproject/iotex-core/db/batch"
 	"github.com/iotexproject/iotex-core/pkg/log"
+)
+
+var (
+	kvStoreCacheMtc = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "iotex_kvstorecache_gauge",
+			Help: "IoTeX kvstorecache gauge",
+		},
+		[]string{"type"},
+	)
 )
 
 // kvStoreWithCache is an implementation of KVStore, wrapping kvstore with LRU caches of latest states
@@ -16,6 +27,10 @@ type kvStoreWithCache struct {
 	store       KVStore
 	stateCaches map[string]cache.LRUCache // map having lru cache to store current states for speed up
 	cacheSize   int
+}
+
+func init() {
+	prometheus.MustRegister(kvStoreCacheMtc)
 }
 
 // NewKvStoreWithCache wraps kvstore with stateCaches
@@ -86,6 +101,7 @@ func (kvc *kvStoreWithCache) WriteBatch(kvsb batch.KVStoreBatch) (err error) {
 	}
 	kvsb.Lock()
 	defer kvsb.ClearAndUnlock()
+	kvStoreCacheMtc.WithLabelValues("writebatch").Set(float64(kvsb.Size()))
 	for i := 0; i < kvsb.Size(); i++ {
 		write, e := kvsb.Entry(i)
 		if e != nil {
@@ -94,9 +110,9 @@ func (kvc *kvStoreWithCache) WriteBatch(kvsb batch.KVStoreBatch) (err error) {
 		ns := write.Namespace()
 		switch write.WriteType() {
 		case batch.Put:
-			kvc.updateStateCachesIfExists(ns, write.Key(), write.Value())
+			kvc.updateStateCachesIfExists(ns, write.InnerKey(), write.Value())
 		case batch.Delete:
-			kvc.deleteStateCaches(ns, write.Key())
+			kvc.deleteStateCaches(ns, write.InnerKey())
 		}
 	}
 	return nil

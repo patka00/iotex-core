@@ -78,6 +78,16 @@ func (wi *WriteInfo) Value() []byte {
 	return value
 }
 
+// InnerKey returns the key of a write info
+func (wi *WriteInfo) InnerKey() []byte {
+	return wi.key
+}
+
+// InnerValue returns the value of a write info
+func (wi *WriteInfo) InnerValue() []byte {
+	return wi.value
+}
+
 // Error returns the error Message
 func (wi *WriteInfo) Error() string {
 	return wi.errorMessage
