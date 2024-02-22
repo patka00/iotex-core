@@ -2,10 +2,10 @@ package db
 
 import (
 	"context"
-	"encoding/hex"
 	"sync"
 
 	"github.com/iotexproject/go-pkgs/cache"
+
 	"github.com/iotexproject/iotex-core/db/batch"
 	"github.com/iotexproject/iotex-core/pkg/log"
 )
@@ -111,10 +111,10 @@ func (kvc *kvStoreWithCache) putStateCaches(namespace string, key, value []byte)
 	kvc.mutex.Lock()
 	defer kvc.mutex.Unlock()
 	if sc, ok := kvc.stateCaches[namespace]; ok {
-		sc.Add(hex.EncodeToString(key), value)
+		sc.Add(kvc.cacheKey(key), value)
 	} else {
 		sc := cache.NewThreadSafeLruCache(kvc.cacheSize)
-		sc.Add(hex.EncodeToString(key), value)
+		sc.Add(kvc.cacheKey(key), value)
 		kvc.stateCaches[namespace] = sc
 	}
 }
@@ -124,8 +124,9 @@ func (kvc *kvStoreWithCache) updateStateCachesIfExists(namespace string, key, va
 	kvc.mutex.Lock()
 	defer kvc.mutex.Unlock()
 	if sc, ok := kvc.stateCaches[namespace]; ok {
-		if _, ok := sc.Get(hex.EncodeToString(key)); ok {
-			sc.Add(hex.EncodeToString(key), value)
+		ck := kvc.cacheKey(key)
+		if _, ok := sc.Get(ck); ok {
+			sc.Add(ck, value)
 		}
 	}
 }
@@ -135,7 +136,7 @@ func (kvc *kvStoreWithCache) deleteStateCaches(namespace string, key []byte) {
 	kvc.mutex.Lock()
 	defer kvc.mutex.Unlock()
 	if sc, ok := kvc.stateCaches[namespace]; ok {
-		sc.Remove(hex.EncodeToString(key))
+		sc.Remove(kvc.cacheKey(key))
 	}
 }
 
@@ -144,7 +145,7 @@ func (kvc *kvStoreWithCache) getStateCaches(namespace string, key []byte) ([]byt
 	kvc.mutex.RLock()
 	defer kvc.mutex.RUnlock()
 	if sc, ok := kvc.stateCaches[namespace]; ok {
-		if data, ok := sc.Get(hex.EncodeToString(key)); ok {
+		if data, ok := sc.Get(kvc.cacheKey(key)); ok {
 			if byteData, ok := data.([]byte); ok {
 				return byteData, true
 			}
@@ -153,4 +154,8 @@ func (kvc *kvStoreWithCache) getStateCaches(namespace string, key []byte) ([]byt
 		}
 	}
 	return nil, false
+}
+
+func (kvc *kvStoreWithCache) cacheKey(key []byte) string {
+	return string(key)
 }
