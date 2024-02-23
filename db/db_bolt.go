@@ -315,16 +315,25 @@ func (b *BoltDB) WriteBatch(kvsb batch.KVStoreBatch) (err error) {
 
 	kvsb.Lock()
 	defer kvsb.Unlock()
+
+	entryMap := make(map[string]*batch.WriteInfo)
+	for i := kvsb.Size() - 1; i >= 0; i-- {
+		write, e := kvsb.Entry(i)
+		if e != nil {
+			return e
+		}
+		k := write.Namespace() + string(write.Key())
+		if _, ok := entryMap[k]; !ok {
+			entryMap[k] = write
+		}
+	}
+
 	time1 := time.Now()
 	putPerf := make(map[string]*batchPut)
 	log.L().Warn("WriteBatch Start", zap.Int("size", kvsb.Size()))
 	for c := uint8(0); c < b.config.NumRetries; c++ {
-		if err = b.db.Batch(func(tx *bolt.Tx) error {
-			for i := 0; i < kvsb.Size(); i++ {
-				write, e := kvsb.Entry(i)
-				if e != nil {
-					return e
-				}
+		if err = b.db.Update(func(tx *bolt.Tx) error {
+			for _, write := range entryMap {
 				ns := write.Namespace()
 				switch write.WriteType() {
 				case batch.Put:
