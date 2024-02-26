@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
 	bolt "go.etcd.io/bbolt"
 	"go.uber.org/zap"
 
@@ -26,6 +27,11 @@ const _fileMode = 0600
 var (
 	// ErrDBNotStarted represents the error when a db has not started
 	ErrDBNotStarted = errors.New("db has not started")
+
+	boltdbMtc = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "iotex_boltdb_metrics",
+		Help: "boltdb metrics.",
+	}, []string{"type", "method"})
 )
 
 // BoltDB is KVStore implementation based bolt DB
@@ -34,6 +40,10 @@ type BoltDB struct {
 	db     *bolt.DB
 	path   string
 	config Config
+}
+
+func init() {
+	prometheus.MustRegister(boltdbMtc)
 }
 
 // NewBoltDB instantiates an BoltDB with implements KVStore
@@ -331,6 +341,8 @@ func (b *BoltDB) WriteBatch(kvsb batch.KVStoreBatch) (err error) {
 	time1 := time.Now()
 	putPerf := make(map[string]*batchPut)
 	log.L().Warn("WriteBatch Start", zap.Int("size", kvsb.Size()), zap.Int("mapsize", len(entryMap)))
+	boltdbMtc.WithLabelValues(b.path, "entrySize").Set(float64(kvsb.Size()))
+	boltdbMtc.WithLabelValues(b.path, "entryMapSize").Set(float64(len(entryMap)))
 	for c := uint8(0); c < b.config.NumRetries; c++ {
 		if err = b.db.Update(func(tx *bolt.Tx) error {
 			for _, write := range entryMap {
@@ -370,6 +382,19 @@ func (b *BoltDB) WriteBatch(kvsb batch.KVStoreBatch) (err error) {
 					}
 				}
 			}
+			stats := tx.Stats()
+			boltdbMtc.WithLabelValues(b.path, "statsCursorCount").Set(float64(stats.CursorCount))
+			boltdbMtc.WithLabelValues(b.path, "statsNodeCount").Set(float64(stats.NodeCount))
+			boltdbMtc.WithLabelValues(b.path, "statsNodeDeref").Set(float64(stats.NodeDeref))
+			boltdbMtc.WithLabelValues(b.path, "statsPageAlloc").Set(float64(stats.PageAlloc))
+			boltdbMtc.WithLabelValues(b.path, "statsPageCount").Set(float64(stats.PageCount))
+			boltdbMtc.WithLabelValues(b.path, "statsRebalance").Set(float64(stats.Rebalance))
+			boltdbMtc.WithLabelValues(b.path, "statsRebalanceTime").Set(float64(stats.RebalanceTime.Nanoseconds()))
+			boltdbMtc.WithLabelValues(b.path, "statsSpill").Set(float64(stats.Spill))
+			boltdbMtc.WithLabelValues(b.path, "statsSpillTime").Set(float64(stats.SpillTime.Nanoseconds()))
+			boltdbMtc.WithLabelValues(b.path, "statsSplit").Set(float64(stats.Split))
+			boltdbMtc.WithLabelValues(b.path, "statsWrite").Set(float64(stats.Write))
+			boltdbMtc.WithLabelValues(b.path, "statsWriteTime").Set(float64(stats.WriteTime.Nanoseconds()))
 			return nil
 		}); err == nil {
 			break
@@ -382,6 +407,7 @@ func (b *BoltDB) WriteBatch(kvsb batch.KVStoreBatch) (err error) {
 		}
 	}
 	log.L().Warn("WriteBatch End", zap.Int("size", kvsb.Size()), zap.Duration("spent", time.Now().Sub(time1)))
+	boltdbMtc.WithLabelValues(b.path, "writeBatchTime").Set(float64(time.Now().Sub(time1)))
 	if err != nil {
 		if errors.Is(err, syscall.ENOSPC) {
 			log.L().Fatal("Failed to write batch db.", zap.Error(err))
