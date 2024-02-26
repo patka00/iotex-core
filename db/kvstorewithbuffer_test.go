@@ -3,6 +3,7 @@ package db
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -106,5 +107,19 @@ func TestFlusher(t *testing.T) {
 			buffer.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			kvb.MustDelete(ns, key)
 		})
+	})
+}
+
+func BenchmarkCacheKey(b *testing.B) {
+	key := []byte("key")
+	b.Run("hex", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			hex.EncodeToString(key)
+		}
+	})
+	b.Run("string", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_ = string(key)
+		}
 	})
 }

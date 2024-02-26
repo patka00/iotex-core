@@ -330,7 +330,7 @@ func (b *BoltDB) WriteBatch(kvsb batch.KVStoreBatch) (err error) {
 
 	time1 := time.Now()
 	putPerf := make(map[string]*batchPut)
-	log.L().Warn("WriteBatch Start", zap.Int("size", kvsb.Size()))
+	log.L().Warn("WriteBatch Start", zap.Int("size", kvsb.Size()), zap.Int("mapsize", len(entryMap)))
 	for c := uint8(0); c < b.config.NumRetries; c++ {
 		if err = b.db.Update(func(tx *bolt.Tx) error {
 			for _, write := range entryMap {
