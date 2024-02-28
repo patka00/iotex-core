@@ -326,13 +326,17 @@ func (b *BoltDB) WriteBatch(kvsb batch.KVStoreBatch) (err error) {
 	kvsb.Lock()
 	defer kvsb.Unlock()
 
-	entryMap := make(map[string]*batch.WriteInfo)
+	type doubleKey struct {
+		ns  string
+		key []byte
+	}
+	entryMap := make(map[*doubleKey]*batch.WriteInfo)
 	for i := kvsb.Size() - 1; i >= 0; i-- {
 		write, e := kvsb.Entry(i)
 		if e != nil {
 			return e
 		}
-		k := write.Namespace() + string(write.Key())
+		k := &doubleKey{ns: write.Namespace(), key: write.Key()}
 		if _, ok := entryMap[k]; !ok {
 			entryMap[k] = write
 		}
