@@ -1,5 +1,4 @@
-name: ci
-
+name:
 on:
   pull_request:
     branches: [master]
